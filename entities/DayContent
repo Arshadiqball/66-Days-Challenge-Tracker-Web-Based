@@ -1,0 +1,61 @@
+{
+  "name": "DayContent",
+  "type": "object",
+  "properties": {
+    "day_number": {
+      "type": "number",
+      "description": "Day number (1-66, or 67-71 for bonus days)"
+    },
+    "is_bonus": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this is a bonus day"
+    },
+    "habit_title": {
+      "type": "string",
+      "description": "Title of the habit for the day"
+    },
+    "habit_emoji": {
+      "type": "string",
+      "description": "Emoji representing the habit"
+    },
+    "quote_of_day": {
+      "type": "string",
+      "description": "Inspirational quote for the day"
+    },
+    "quote_author": {
+      "type": "string",
+      "description": "Author of the quote"
+    },
+    "why_this_habit": {
+      "type": "string",
+      "description": "Explanation of why this habit matters"
+    },
+    "action_plan": {
+      "type": "string",
+      "description": "Today's action plan description"
+    },
+    "affirmation": {
+      "type": "string",
+      "description": "Today's affirmation (optional)"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "Morning",
+        "Movement",
+        "Nutrition",
+        "Mindset",
+        "Evening",
+        "Social",
+        "Learning",
+        "Bonus"
+      ],
+      "default": "Morning"
+    }
+  },
+  "required": [
+    "day_number",
+    "habit_title"
+  ]
+}

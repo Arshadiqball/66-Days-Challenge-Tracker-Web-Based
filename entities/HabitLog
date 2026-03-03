@@ -1,0 +1,68 @@
+{
+  "name": "HabitLog",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "description": "Email of the user who logged this entry"
+    },
+    "day_number": {
+      "type": "number",
+      "description": "Day number (1-66, or 67-71 for bonus)"
+    },
+    "is_bonus": {
+      "type": "boolean",
+      "default": false
+    },
+    "completed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the day was completed"
+    },
+    "habit_stacked": {
+      "type": "string",
+      "enum": [
+        "yes",
+        "no",
+        "na"
+      ],
+      "default": "na",
+      "description": "Did the user stack this habit with previous days?"
+    },
+    "feeling_before": {
+      "type": "string",
+      "description": "How the user felt before the habit"
+    },
+    "feeling_after": {
+      "type": "string",
+      "description": "How the user felt after the habit"
+    },
+    "mood": {
+      "type": "string",
+      "enum": [
+        "positive",
+        "neutral",
+        "negative"
+      ],
+      "description": "Mood inferred from feeling after"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional additional notes"
+    },
+    "trophy_earned": {
+      "type": "boolean",
+      "default": false,
+      "description": "Trophy earned if completed AND stacked"
+    },
+    "log_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date when this was logged"
+    }
+  },
+  "required": [
+    "day_number",
+    "user_email"
+  ]
+}

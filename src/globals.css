@@ -1,0 +1,116 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap');
+
+:root {
+  --brand-gold: #C9A84C;
+  --brand-gold-light: #E8C96A;
+  --brand-gold-dark: #A8882A;
+  --brand-dark: #1A1A2E;
+  --brand-navy: #0F0F23;
+  --brand-mid: #16213E;
+  --brand-surface: #1E2A45;
+  --brand-surface-light: #243356;
+  --text-primary: #F5F0E8;
+  --text-secondary: #B8B0A0;
+  --text-muted: #7A7268;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--brand-navy);
+  color: var(--text-primary);
+  margin: 0;
+  padding: 0;
+}
+
+.font-playfair {
+  font-family: 'Playfair Display', serif;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--brand-dark);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--brand-gold-dark);
+  border-radius: 3px;
+}
+
+/* Gold gradient text */
+.text-gold-gradient {
+  background: linear-gradient(135deg, #C9A84C, #E8C96A, #C9A84C);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Card glass effect */
+.glass-card {
+  background: rgba(30, 42, 69, 0.8);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(201, 168, 76, 0.15);
+}
+
+/* Gold border */
+.border-gold {
+  border-color: rgba(201, 168, 76, 0.3);
+}
+
+/* Glow effect */
+.gold-glow {
+  box-shadow: 0 0 20px rgba(201, 168, 76, 0.2);
+}
+
+/* Day card hover */
+.day-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(201, 168, 76, 0.15);
+  border-color: rgba(201, 168, 76, 0.4);
+}
+
+.day-card {
+  transition: all 0.25s ease;
+}
+
+/* Progress ring animation */
+@keyframes ring-fill {
+  from { stroke-dashoffset: 283; }
+}
+
+/* Fade in */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s ease forwards;
+}
+
+/* Trophy bounce */
+@keyframes trophyBounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+.trophy-bounce {
+  animation: trophyBounce 2s ease-in-out infinite;
+}
+
+/* Pulse gold */
+@keyframes pulseGold {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+.pulse-gold {
+  animation: pulseGold 2s ease-in-out infinite;
+}
