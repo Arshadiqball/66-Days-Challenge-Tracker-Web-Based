@@ -372,6 +372,9 @@ app.delete('/api/apps/:appId/entities/:entity/:id', requireAuth, async (req, res
   if (ADMIN_ONLY_TABLES.has(table) && req.authUser.role !== 'admin') {
     return unauthorized(res, 'Admin access required');
   }
+  if (table === 'users' && req.params.id === req.authUser.id) {
+    return badRequest(res, 'You cannot delete your own account');
+  }
 
   try {
     // For user-scoped tables, only allow deleting own records

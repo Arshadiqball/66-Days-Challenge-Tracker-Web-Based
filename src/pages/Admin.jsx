@@ -31,6 +31,9 @@ export default function Admin() {
   const [saving, setSaving] = useState(false);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [creatingUser, setCreatingUser] = useState(false);
+  const [updatingUserId, setUpdatingUserId] = useState(null);
+  const [deletingUserId, setDeletingUserId] = useState(null);
+  const [editingUser, setEditingUser] = useState(null);
   const [userForm, setUserForm] = useState(emptyUserForm);
   const [userError, setUserError] = useState('');
   const [userSuccess, setUserSuccess] = useState('');
@@ -147,6 +150,63 @@ export default function Admin() {
       setUserError(err.message || 'Could not create user.');
     } finally {
       setCreatingUser(false);
+    }
+  };
+
+  const startEditUser = (targetUser) => {
+    setEditingUser({
+      id: targetUser.id,
+      full_name: targetUser.full_name || '',
+      email: targetUser.email || '',
+      role: targetUser.role || 'user',
+    });
+    setUserError('');
+    setUserSuccess('');
+  };
+
+  const saveUser = async () => {
+    if (!editingUser?.email?.trim()) {
+      setUserError('Email is required.');
+      return;
+    }
+
+    setUpdatingUserId(editingUser.id);
+    try {
+      const updated = await entities.User.update(editingUser.id, {
+        full_name: editingUser.full_name.trim(),
+        email: editingUser.email.trim(),
+        role: editingUser.role,
+      });
+      setUsers(prev => prev.map(u => (u.id === updated.id ? updated : u)));
+      setEditingUser(null);
+      setUserSuccess('User updated successfully.');
+    } catch (err) {
+      setUserError(err.message || 'Could not update user.');
+    } finally {
+      setUpdatingUserId(null);
+    }
+  };
+
+  const deleteUser = async (targetUser) => {
+    const isSelf = targetUser.id === user?.id;
+    if (isSelf) {
+      setUserError('You cannot delete your own admin account.');
+      return;
+    }
+
+    const confirmed = window.confirm(`Delete user "${targetUser.email}"?`);
+    if (!confirmed) return;
+
+    setDeletingUserId(targetUser.id);
+    try {
+      await entities.User.delete(targetUser.id);
+      setUsers(prev => prev.filter(u => u.id !== targetUser.id));
+      if (editingUser?.id === targetUser.id) setEditingUser(null);
+      setUserSuccess('User deleted successfully.');
+    } catch (err) {
+      setUserError(err.message || 'Could not delete user.');
+    } finally {
+      setDeletingUserId(null);
     }
   };
 
@@ -501,16 +561,95 @@ export default function Admin() {
                     <th className="text-left py-2">Email</th>
                     <th className="text-left py-2">Role</th>
                     <th className="text-left py-2">Created</th>
+                    <th className="text-left py-2">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {users.map(u => (
                     <tr key={u.id} className="border-t" style={{ borderColor: 'rgba(201,168,76,0.1)' }}>
-                      <td className="py-2" style={{ color: 'var(--text-primary)' }}>{u.full_name || '-'}</td>
-                      <td className="py-2" style={{ color: 'var(--text-secondary)' }}>{u.email}</td>
-                      <td className="py-2" style={{ color: 'var(--text-secondary)' }}>{u.role}</td>
+                      <td className="py-2" style={{ color: 'var(--text-primary)' }}>
+                        {editingUser?.id === u.id ? (
+                          <input
+                            type="text"
+                            value={editingUser.full_name}
+                            onChange={e => setEditingUser(prev => ({ ...prev, full_name: e.target.value }))}
+                            className="w-full px-2 py-1 rounded border text-xs outline-none"
+                            style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(201,168,76,0.2)', color: 'var(--text-primary)' }}
+                          />
+                        ) : (u.full_name || '-')}
+                      </td>
+                      <td className="py-2" style={{ color: 'var(--text-secondary)' }}>
+                        {editingUser?.id === u.id ? (
+                          <input
+                            type="email"
+                            value={editingUser.email}
+                            onChange={e => setEditingUser(prev => ({ ...prev, email: e.target.value }))}
+                            className="w-full px-2 py-1 rounded border text-xs outline-none"
+                            style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(201,168,76,0.2)', color: 'var(--text-primary)' }}
+                          />
+                        ) : u.email}
+                      </td>
+                      <td className="py-2" style={{ color: 'var(--text-secondary)' }}>
+                        {editingUser?.id === u.id ? (
+                          <select
+                            value={editingUser.role}
+                            onChange={e => setEditingUser(prev => ({ ...prev, role: e.target.value }))}
+                            className="w-full px-2 py-1 rounded border text-xs outline-none"
+                            style={{ background: 'rgba(22,33,62,0.9)', borderColor: 'rgba(201,168,76,0.2)', color: 'var(--text-primary)' }}
+                          >
+                            <option value="user">user</option>
+                            <option value="admin">admin</option>
+                          </select>
+                        ) : u.role}
+                      </td>
                       <td className="py-2" style={{ color: 'var(--text-muted)' }}>
                         {u.created_at ? new Date(u.created_at).toLocaleDateString() : '-'}
+                      </td>
+                      <td className="py-2">
+                        <div className="flex items-center gap-2">
+                          {editingUser?.id === u.id ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={saveUser}
+                                disabled={updatingUserId === u.id}
+                                className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                                style={{ color: 'var(--brand-gold)', opacity: updatingUserId === u.id ? 0.6 : 1 }}
+                              >
+                                <Save size={14} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEditingUser(null)}
+                                className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                                style={{ color: 'var(--text-muted)' }}
+                              >
+                                <X size={14} />
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => startEditUser(u)}
+                                className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                                style={{ color: 'var(--brand-gold)' }}
+                              >
+                                <Edit3 size={14} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => deleteUser(u)}
+                                disabled={deletingUserId === u.id || u.id === user?.id}
+                                className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors"
+                                style={{ color: '#f87171', opacity: deletingUserId === u.id || u.id === user?.id ? 0.5 : 1 }}
+                                title={u.id === user?.id ? 'You cannot delete your own account' : 'Delete user'}
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
