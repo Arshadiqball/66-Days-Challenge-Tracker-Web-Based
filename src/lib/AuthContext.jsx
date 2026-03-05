@@ -6,11 +6,14 @@ const AuthContext = createContext(null);
 const TOKEN_KEY = 'base44_access_token'; // base44 SDK reads this key automatically
 const API_BASE  = '/api/auth';
 
-async function apiPost(path, body) {
+async function apiPost(path, body, { token } = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers.Authorization = `Bearer ${token}`;
+
   const res = await fetch(path, {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify(body),
+    method: 'POST',
+    headers,
+    body: JSON.stringify(body),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Request failed');
@@ -38,13 +41,17 @@ export const AuthProvider = ({ children }) => {
       .finally(() => setIsLoading(false));
   }, []);
 
-  // ── Register ───────────────────────────────────────────────────────────────
-  const register = useCallback(async ({ email, password, full_name }) => {
-    const { token, user: u } = await apiPost(`${API_BASE}/register`, { email, password, full_name });
-    localStorage.setItem(TOKEN_KEY, token);
-    setUser(u);
-    setIsAuthenticated(true);
-    return u;
+  // ── Admin creates users ────────────────────────────────────────────────────
+  const createUserByAdmin = useCallback(async ({ email, password, full_name }) => {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) throw new Error('Authentication required');
+
+    const { user: createdUser } = await apiPost(
+      `${API_BASE}/register`,
+      { email, password, full_name },
+      { token }
+    );
+    return createdUser;
   }, []);
 
   // ── Login ──────────────────────────────────────────────────────────────────
@@ -78,7 +85,7 @@ export const AuthProvider = ({ children }) => {
       user,
       isAuthenticated,
       isLoading,
-      register,
+      createUserByAdmin,
       login,
       logout,
       forgotPassword,

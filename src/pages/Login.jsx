@@ -62,12 +62,6 @@ export default function Login() {
         <SubmitButton loading={loading}>Sign in</SubmitButton>
       </form>
 
-      <p className="mt-6 text-center text-sm" style={{ color: 'var(--text-muted)' }}>
-        Don't have an account?{' '}
-        <Link to="/Register" className="font-semibold hover:underline" style={{ color: 'var(--brand-gold)' }}>
-          Create one
-        </Link>
-      </p>
     </AuthShell>
   );
 }

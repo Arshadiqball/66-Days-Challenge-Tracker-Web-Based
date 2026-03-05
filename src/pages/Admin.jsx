@@ -17,26 +17,45 @@ const emptyContent = {
 };
 
 const emptyField = { field_label: '', field_type: 'textarea', field_options: '', is_active: true, sort_order: 0 };
+const emptyUserForm = { full_name: '', email: '', password: '', confirm: '' };
 
 export default function Admin() {
-  const { user } = useAuth();
+  const { user, createUserByAdmin } = useAuth();
   const [days, setDays] = useState([]);
   const [customFields, setCustomFields] = useState([]);
+  const [users, setUsers] = useState([]);
   const [activeTab, setActiveTab] = useState('days');
   const [editingDay, setEditingDay] = useState(null);
   const [editingField, setEditingField] = useState(null);
   const [expandedDay, setExpandedDay] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [creatingUser, setCreatingUser] = useState(false);
+  const [userForm, setUserForm] = useState(emptyUserForm);
+  const [userError, setUserError] = useState('');
+  const [userSuccess, setUserSuccess] = useState('');
+
+  const loadUsers = async () => {
+    setLoadingUsers(true);
+    try {
+      const allUsers = await entities.User.list('created_at', 200);
+      setUsers(allUsers);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
 
   useEffect(() => {
     if (user?.role !== 'admin') return;
     const init = async () => {
-      const [d, f] = await Promise.all([
+      const [d, f, allUsers] = await Promise.all([
         entities.DayContent.list('day_number', 100),
         entities.CustomField.list('sort_order', 50),
+        entities.User.list('created_at', 200),
       ]);
       setDays(d);
       setCustomFields(f);
+      setUsers(allUsers);
     };
     init();
   }, [user]);
@@ -93,6 +112,44 @@ export default function Admin() {
     setCustomFields(prev => prev.map(f => f.id === updated.id ? updated : f));
   };
 
+  const setUserField = (key, value) => {
+    setUserForm(prev => ({ ...prev, [key]: value }));
+    setUserError('');
+    setUserSuccess('');
+  };
+
+  const createUser = async (e) => {
+    e.preventDefault();
+    if (!userForm.full_name || !userForm.email || !userForm.password) {
+      setUserError('Please fill in all required fields.');
+      return;
+    }
+    if (userForm.password.length < 6) {
+      setUserError('Password must be at least 6 characters.');
+      return;
+    }
+    if (userForm.password !== userForm.confirm) {
+      setUserError('Passwords do not match.');
+      return;
+    }
+
+    setCreatingUser(true);
+    try {
+      await createUserByAdmin({
+        full_name: userForm.full_name.trim(),
+        email: userForm.email.trim(),
+        password: userForm.password,
+      });
+      setUserSuccess('User created successfully.');
+      setUserForm(emptyUserForm);
+      await loadUsers();
+    } catch (err) {
+      setUserError(err.message || 'Could not create user.');
+    } finally {
+      setCreatingUser(false);
+    }
+  };
+
   return (
     <div className="p-4 md:p-8 max-w-4xl mx-auto">
       <div className="mb-6">
@@ -110,6 +167,7 @@ export default function Admin() {
         {[
           { key: 'days', label: 'Daily Content' },
           { key: 'fields', label: 'Custom Fields' },
+          { key: 'users', label: 'User Management' },
         ].map(t => (
           <button key={t.key} onClick={() => setActiveTab(t.key)}
             className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
@@ -354,6 +412,117 @@ export default function Admin() {
                 <p className="text-xs mt-1">Add fields to customize the daily entry form.</p>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* USER MANAGEMENT TAB */}
+      {activeTab === 'users' && (
+        <div className="space-y-6">
+          <div className="glass-card rounded-2xl p-6 border-gold border">
+            <h3 className="font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
+              Create User Account
+            </h3>
+            <form onSubmit={createUser} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Full Name</label>
+                <input
+                  type="text"
+                  value={userForm.full_name}
+                  onChange={e => setUserField('full_name', e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border text-sm outline-none"
+                  style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(201,168,76,0.2)', color: 'var(--text-primary)' }}
+                />
+              </div>
+              <div>
+                <label className="block text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Email</label>
+                <input
+                  type="email"
+                  value={userForm.email}
+                  onChange={e => setUserField('email', e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border text-sm outline-none"
+                  style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(201,168,76,0.2)', color: 'var(--text-primary)' }}
+                />
+              </div>
+              <div>
+                <label className="block text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Password</label>
+                <input
+                  type="password"
+                  value={userForm.password}
+                  onChange={e => setUserField('password', e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border text-sm outline-none"
+                  style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(201,168,76,0.2)', color: 'var(--text-primary)' }}
+                />
+              </div>
+              <div>
+                <label className="block text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Confirm Password</label>
+                <input
+                  type="password"
+                  value={userForm.confirm}
+                  onChange={e => setUserField('confirm', e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border text-sm outline-none"
+                  style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(201,168,76,0.2)', color: 'var(--text-primary)' }}
+                />
+              </div>
+              <div className="md:col-span-2 flex items-center gap-3">
+                <button
+                  type="submit"
+                  disabled={creatingUser}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all"
+                  style={{ background: 'linear-gradient(135deg, #C9A84C, #A8882A)', color: '#1A1A2E', opacity: creatingUser ? 0.7 : 1 }}
+                >
+                  <Plus size={14} />
+                  {creatingUser ? 'Creating...' : 'Create User'}
+                </button>
+                {userError && <span className="text-xs" style={{ color: '#f87171' }}>{userError}</span>}
+                {userSuccess && <span className="text-xs" style={{ color: '#4ade80' }}>{userSuccess}</span>}
+              </div>
+            </form>
+          </div>
+
+          <div className="glass-card rounded-2xl p-6 border-gold border">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>Registered Users</h3>
+              <button
+                type="button"
+                onClick={loadUsers}
+                className="px-3 py-1.5 rounded-lg text-xs border"
+                style={{ borderColor: 'rgba(201,168,76,0.2)', color: 'var(--text-secondary)' }}
+              >
+                Refresh
+              </button>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr style={{ color: 'var(--text-muted)' }}>
+                    <th className="text-left py-2">Name</th>
+                    <th className="text-left py-2">Email</th>
+                    <th className="text-left py-2">Role</th>
+                    <th className="text-left py-2">Created</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map(u => (
+                    <tr key={u.id} className="border-t" style={{ borderColor: 'rgba(201,168,76,0.1)' }}>
+                      <td className="py-2" style={{ color: 'var(--text-primary)' }}>{u.full_name || '-'}</td>
+                      <td className="py-2" style={{ color: 'var(--text-secondary)' }}>{u.email}</td>
+                      <td className="py-2" style={{ color: 'var(--text-secondary)' }}>{u.role}</td>
+                      <td className="py-2" style={{ color: 'var(--text-muted)' }}>
+                        {u.created_at ? new Date(u.created_at).toLocaleDateString() : '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {!loadingUsers && users.length === 0 && (
+                <p className="text-sm py-4" style={{ color: 'var(--text-muted)' }}>No users found.</p>
+              )}
+              {loadingUsers && (
+                <p className="text-sm py-4" style={{ color: 'var(--text-muted)' }}>Loading users...</p>
+              )}
+            </div>
           </div>
         </div>
       )}

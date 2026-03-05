@@ -83,6 +83,11 @@ app.post('/api/auth/register', async (req, res) => {
   if (!email || !password) return badRequest(res, 'Email and password are required');
   if (password.length < 6) return badRequest(res, 'Password must be at least 6 characters');
 
+  const raw = getTokenFromRequest(req);
+  if (!raw) return unauthorized(res, 'Admin authentication required');
+  const payload = verifyToken(raw);
+  if (!payload || payload.role !== 'admin') return unauthorized(res, 'Admin access required');
+
   try {
     const exists = await pool.query('SELECT id FROM users WHERE email = $1', [email.toLowerCase()]);
     if (exists.rows.length) return badRequest(res, 'An account with this email already exists');
@@ -93,9 +98,8 @@ app.post('/api/auth/register', async (req, res) => {
        VALUES ($1, $2, $3, 'user') RETURNING id, email, full_name, role, created_at`,
       [email.toLowerCase(), full_name?.trim() || '', hash]
     );
-    const user  = rows[0];
-    const token = signToken(user);
-    created(res, { token, user });
+    const user = rows[0];
+    created(res, { user });
   } catch (err) {
     console.error('[register]', err.message);
     res.status(500).json({ error: 'Registration failed' });
@@ -239,6 +243,7 @@ function requireAuth(req, res, next) {
 
 // Tables whose records are always scoped to the authenticated user
 const USER_SCOPED_TABLES = new Set(['habit_logs']);
+const ADMIN_ONLY_TABLES = new Set(['users']);
 
 // ─── Generic entity CRUD ──────────────────────────────────────────────────────
 
@@ -246,6 +251,9 @@ const USER_SCOPED_TABLES = new Set(['habit_logs']);
 app.get('/api/apps/:appId/entities/:entity', requireAuth, async (req, res) => {
   const table = ENTITY_TABLE[req.params.entity];
   if (!table) return notFound(res, `Unknown entity: ${req.params.entity}`);
+  if (ADMIN_ONLY_TABLES.has(table) && req.authUser.role !== 'admin') {
+    return unauthorized(res, 'Admin access required');
+  }
 
   try {
     const { q, sort, limit } = req.query;
@@ -285,6 +293,9 @@ app.get('/api/apps/:appId/entities/:entity', requireAuth, async (req, res) => {
 app.post('/api/apps/:appId/entities/:entity', requireAuth, async (req, res) => {
   const table = ENTITY_TABLE[req.params.entity];
   if (!table) return notFound(res, `Unknown entity: ${req.params.entity}`);
+  if (ADMIN_ONLY_TABLES.has(table) && req.authUser.role !== 'admin') {
+    return unauthorized(res, 'Admin access required');
+  }
 
   const { id: _id, created_at: _ca, updated_at: _ua, ...fields } = req.body || {};
 
@@ -315,6 +326,9 @@ app.post('/api/apps/:appId/entities/:entity', requireAuth, async (req, res) => {
 app.put('/api/apps/:appId/entities/:entity/:id', requireAuth, async (req, res) => {
   const table = ENTITY_TABLE[req.params.entity];
   if (!table) return notFound(res, `Unknown entity: ${req.params.entity}`);
+  if (ADMIN_ONLY_TABLES.has(table) && req.authUser.role !== 'admin') {
+    return unauthorized(res, 'Admin access required');
+  }
 
   const { id: _id, created_at: _ca, updated_at: _ua, password_hash: _ph, ...fields } = req.body || {};
 
@@ -355,6 +369,9 @@ app.put('/api/apps/:appId/entities/:entity/:id', requireAuth, async (req, res) =
 app.delete('/api/apps/:appId/entities/:entity/:id', requireAuth, async (req, res) => {
   const table = ENTITY_TABLE[req.params.entity];
   if (!table) return notFound(res, `Unknown entity: ${req.params.entity}`);
+  if (ADMIN_ONLY_TABLES.has(table) && req.authUser.role !== 'admin') {
+    return unauthorized(res, 'Admin access required');
+  }
 
   try {
     // For user-scoped tables, only allow deleting own records

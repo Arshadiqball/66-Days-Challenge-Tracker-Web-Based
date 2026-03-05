@@ -45,4 +45,5 @@ export const entities = {
   HabitLog:    entityApi('HabitLog'),
   DayContent:  entityApi('DayContent'),
   CustomField: entityApi('CustomField'),
+  User:        entityApi('User'),
 };

@@ -17,7 +17,7 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout
   : <>{children}</>;
 
 const AuthenticatedApp = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) {
     return (
@@ -32,7 +32,6 @@ const AuthenticatedApp = () => {
     <Routes>
       {/* Public auth routes — always accessible */}
       <Route path="/Login"          element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} />
-      <Route path="/Register"       element={isAuthenticated ? <Navigate to="/" replace /> : <Register />} />
       <Route path="/ForgotPassword" element={<ForgotPassword />} />
       <Route path="/ResetPassword"  element={<ForgotPassword />} />
 
@@ -53,6 +52,10 @@ const AuthenticatedApp = () => {
               </LayoutWrapper>
             } />
           ))}
+          <Route
+            path="/private-registration"
+            element={user?.role === 'admin' ? <Register /> : <Navigate to="/" replace />}
+          />
           <Route path="*" element={<Navigate to="/" replace />} />
         </>
       )}
