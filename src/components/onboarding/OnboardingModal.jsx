@@ -4,7 +4,7 @@ import { X, ChevronRight, ChevronLeft, Trophy, BarChart2, BookOpen, Layers } fro
 const steps = [
   {
     icon: BookOpen,
-    title: 'Welcome to Your 66 Days Challenge',
+    title: 'Welcome to Your 66 Day Challenge',
     subtitle: 'Your digital habit-tracking journal',
     body: 'Over the next 66 days, you\'ll build powerful habits that transform your life. Each day has a dedicated habit to practice, reflect on, and track. Science shows it takes 66 days to form a lasting habit — so let\'s get started!',
     color: '#C9A84C',

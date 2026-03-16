@@ -78,8 +78,16 @@ export default function Dashboard() {
     );
   }
 
+  const iconGuideItems = [
+    { icon: '🧠', label: 'Mindset', desc: 'thoughts, beliefs, emotional patterns' },
+    { icon: '⚡', label: 'Body/Energy', desc: 'movement, vitality, physical well-being' },
+    { icon: '🏡', label: 'Environment', desc: 'home, surroundings, digital spaces' },
+    { icon: '💗', label: 'Relationships', desc: 'connection, communication, emotional closeness' },
+    { icon: '🎯', label: 'Productivity/Identity', desc: 'focus, discipline, self-concept' },
+  ];
+
   return (
-    <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
+    <div className="p-5 md:p-8 max-w-6xl mx-auto space-y-7 text-[15px] md:text-base">
       {showOnboarding && <OnboardingModal onClose={() => setShowOnboarding(false)} />}
 
       {/* Header */}
@@ -88,13 +96,13 @@ export default function Dashboard() {
           <h1 className="text-2xl md:text-3xl font-bold font-playfair" style={{ color: 'var(--text-primary)' }}>
             {user?.full_name ? `Welcome back, ${user.full_name.split(' ')[0]}` : 'Your Dashboard'}
           </h1>
-          <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+          <p className="text-base mt-1" style={{ color: 'var(--text-secondary)' }}>
             Track your 66-day habit journey
           </p>
         </div>
         <button
           onClick={() => setShowOnboarding(true)}
-          className="text-xs px-3 py-1.5 rounded-lg border transition-all hover:bg-white/5"
+          className="text-sm px-3 py-2 rounded-lg border transition-all hover:bg-white/5"
           style={{ borderColor: 'rgba(201,168,76,0.3)', color: 'var(--brand-gold)' }}>
           How it works
         </button>
@@ -147,6 +155,45 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Mobile icon guide */}
+      <div className="md:hidden glass-card rounded-2xl p-4 border border-gold">
+        <h3 className="text-sm font-semibold mb-2" style={{ color: 'var(--brand-gold)' }}>
+          Follow the Icons
+        </h3>
+        <ul className="space-y-1.5">
+          {iconGuideItems.map(item => (
+            <li key={item.label} className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+              <span className="mr-2">{item.icon}</span>
+              <span style={{ color: 'var(--text-primary)' }}>{item.label}</span>
+              <span> — {item.desc}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Desktop icon guide (lower-right) */}
+      <aside
+        className="hidden md:block fixed bottom-5 right-5 z-20 w-[360px] rounded-2xl p-4 border shadow-xl"
+        style={{
+          background: 'rgba(20, 29, 48, 0.95)',
+          borderColor: 'rgba(201,168,76,0.25)',
+          boxShadow: '0 14px 30px rgba(0,0,0,0.35)',
+        }}
+      >
+        <h3 className="text-base font-semibold mb-2" style={{ color: 'var(--brand-gold)' }}>
+          Follow the Icons
+        </h3>
+        <ul className="space-y-1.5">
+          {iconGuideItems.map(item => (
+            <li key={item.label} className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+              <span className="mr-2">{item.icon}</span>
+              <span style={{ color: 'var(--text-primary)' }}>{item.label}</span>
+              <span> — {item.desc}</span>
+            </li>
+          ))}
+        </ul>
+      </aside>
     </div>
   );
 }

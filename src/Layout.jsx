@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/AuthContext';
 
 const baseNavItems = [
   { name: 'Dashboard', page: 'Dashboard', icon: LayoutDashboard },
-  { name: '66 Days',   page: 'Journey',   icon: CalendarDays },
+  { name: '66 Day',    page: 'Journey',   icon: CalendarDays },
 ];
 
 const adminNavItems = [
@@ -59,7 +59,7 @@ export default function Layout({ children, currentPageName }) {
               <Trophy size={16} style={{ color: '#1A1A2E' }} />
             </div>
             <div>
-              <p className="text-xs font-black uppercase tracking-widest text-gold-gradient">66 Days</p>
+              <p className="text-xs font-black uppercase tracking-widest text-gold-gradient">66 Day</p>
               <p className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Challenge</p>
             </div>
           </div>
@@ -116,7 +116,7 @@ export default function Layout({ children, currentPageName }) {
             style={{ background: 'linear-gradient(135deg, #C9A84C, #A8882A)' }}>
             <Trophy size={13} style={{ color: '#1A1A2E' }} />
           </div>
-          <span className="text-sm font-black uppercase tracking-widest text-gold-gradient">66 Days Challenge</span>
+          <span className="text-sm font-black uppercase tracking-widest text-gold-gradient">66 Day Challenge</span>
         </div>
         <button onClick={() => setMobileOpen(!mobileOpen)} className="p-1.5 rounded-lg hover:bg-white/10"
           style={{ color: 'var(--text-secondary)' }}>

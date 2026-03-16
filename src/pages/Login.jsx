@@ -90,7 +90,7 @@ export function AuthShell({ title, subtitle, children }) {
             <Trophy size={20} style={{ color: '#1A1A2E' }} />
           </div>
           <div>
-            <p className="text-sm font-black uppercase tracking-widest text-gold-gradient">66 Days</p>
+            <p className="text-sm font-black uppercase tracking-widest text-gold-gradient">66 Day</p>
             <p className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Challenge</p>
           </div>
         </div>
