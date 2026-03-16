@@ -6,7 +6,7 @@ const steps = [
     icon: BookOpen,
     title: 'Welcome to Your 66 Day Challenge',
     subtitle: 'Your digital habit-tracking journal',
-    body: 'Over the next 66 days, you\'ll build powerful habits that transform your life. Each day has a dedicated habit to practice, reflect on, and track. Science shows it takes 66 days to form a lasting habit — so let\'s get started!',
+    body: 'Over the next 66 day, you\'ll build powerful habits that transform your life. Each day has a dedicated habit to practice, reflect on, and track. Science shows it takes 66 day to form a lasting habit — so let\'s get started!',
     color: '#C9A84C',
   },
   {
@@ -27,7 +27,7 @@ const steps = [
     icon: Trophy,
     title: 'Trophies & Progress',
     subtitle: 'Celebrate your wins',
-    body: 'Earn a 🏆 trophy each time you complete a day AND stack your habit. Your dashboard tracks your total trophies, streak, completion rate, and a full visual of all 66 days so you can see your journey at a glance.',
+    body: 'Earn a 🏆 trophy each time you complete a day AND stack your habit. Your dashboard tracks your total trophies, streak, completion rate, and a full visual of all 66 day so you can see your journey at a glance.',
     color: '#C9A84C',
   },
 ];

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { entities } from '@/api/entities';
-import { Trophy, CheckCircle, Layers, Flame, TrendingUp } from 'lucide-react';
+import { Trophy, CheckCircle, Layers, Flame, ChevronsDown, ChevronsUp } from 'lucide-react';
 import StatsCard from '../components/dashboard/StatsCard';
 import CircularProgress from '../components/dashboard/CircularProgress';
 import MoodChart from '../components/dashboard/MoodChart';
@@ -14,6 +14,7 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [logs, setLogs] = useState([]);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [isIconGuideOpen, setIsIconGuideOpen] = useState(true);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -172,28 +173,57 @@ export default function Dashboard() {
         </ul>
       </div>
 
-      {/* Desktop icon guide (lower-right) */}
-      <aside
-        className="hidden md:block fixed bottom-5 right-5 z-20 w-[360px] rounded-2xl p-4 border shadow-xl"
-        style={{
-          background: 'rgba(20, 29, 48, 0.95)',
-          borderColor: 'rgba(201,168,76,0.25)',
-          boxShadow: '0 14px 30px rgba(0,0,0,0.35)',
-        }}
-      >
-        <h3 className="text-base font-semibold mb-2" style={{ color: 'var(--brand-gold)' }}>
-          Follow the Icons
-        </h3>
-        <ul className="space-y-1.5">
-          {iconGuideItems.map(item => (
-            <li key={item.label} className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-              <span className="mr-2">{item.icon}</span>
-              <span style={{ color: 'var(--text-primary)' }}>{item.label}</span>
-              <span> — {item.desc}</span>
-            </li>
-          ))}
-        </ul>
-      </aside>
+      {/* Desktop icon guide (toggleable lower-right card + floating button) */}
+      {isIconGuideOpen ? (
+        <aside
+          className="hidden md:block fixed bottom-5 right-5 z-20 w-[360px] rounded-2xl p-4 border shadow-xl"
+          style={{
+            background: 'rgba(20, 29, 48, 0.95)',
+            borderColor: 'rgba(201,168,76,0.25)',
+            boxShadow: '0 14px 30px rgba(0,0,0,0.35)',
+          }}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-base font-semibold" style={{ color: 'var(--brand-gold)' }}>
+              Follow the Icons
+            </h3>
+            <button
+              type="button"
+              onClick={() => setIsIconGuideOpen(false)}
+              className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+              style={{ color: 'var(--text-secondary)' }}
+              title="Minimize icon guide"
+            >
+              <ChevronsDown size={16} />
+            </button>
+          </div>
+          <ul className="space-y-1.5">
+            {iconGuideItems.map(item => (
+              <li key={item.label} className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                <span className="mr-2">{item.icon}</span>
+                <span style={{ color: 'var(--text-primary)' }}>{item.label}</span>
+                <span> — {item.desc}</span>
+              </li>
+            ))}
+          </ul>
+        </aside>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setIsIconGuideOpen(true)}
+          className="hidden md:flex fixed bottom-5 right-5 z-20 items-center gap-2 px-3 py-2 rounded-full border shadow-xl transition-all hover:scale-[1.02]"
+          style={{
+            background: 'rgba(20, 29, 48, 0.95)',
+            borderColor: 'rgba(201,168,76,0.25)',
+            color: 'var(--brand-gold)',
+            boxShadow: '0 14px 30px rgba(0,0,0,0.35)',
+          }}
+          title="Open icon guide"
+        >
+          <ChevronsUp size={16} />
+          <span className="text-sm font-semibold">Follow the Icons</span>
+        </button>
+      )}
     </div>
   );
 }
