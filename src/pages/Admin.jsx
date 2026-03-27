@@ -16,7 +16,14 @@ const emptyContent = {
   category: 'Morning',
 };
 
-const emptyField = { field_label: '', field_type: 'textarea', field_options: '', is_active: true, sort_order: 0 };
+const emptyField = {
+  field_label: '',
+  field_type: 'textarea',
+  display_in: 'my_entry',
+  field_options: '',
+  is_active: true,
+  sort_order: 0,
+};
 const emptyUserForm = { full_name: '', email: '', password: '', confirm: '' };
 
 export default function Admin() {
@@ -404,6 +411,18 @@ export default function Admin() {
                     <option value="checkbox">Checkbox</option>
                   </select>
                 </div>
+                <div>
+                  <label className="block text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Display In</label>
+                  <select
+                    value={editingField.display_in || 'my_entry'}
+                    onChange={e => setEditingField(p => ({ ...p, display_in: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-lg border text-sm outline-none"
+                    style={{ background: 'rgba(22,33,62,0.9)', borderColor: 'rgba(201,168,76,0.2)', color: 'var(--text-primary)' }}
+                  >
+                    <option value="today_habit">Today's Habit</option>
+                    <option value="my_entry">My Entry</option>
+                  </select>
+                </div>
                 {editingField.field_type === 'select' && (
                   <div className="md:col-span-2">
                     <label className="block text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Options (comma-separated)</label>
@@ -448,6 +467,9 @@ export default function Admin() {
                   </p>
                   <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
                     {field.field_type} {field.field_options ? `· ${field.field_options}` : ''}
+                  </p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                    {field.display_in === 'today_habit' ? "Today's Habit" : 'My Entry'}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">

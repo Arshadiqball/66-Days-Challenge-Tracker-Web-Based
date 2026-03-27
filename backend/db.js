@@ -75,6 +75,7 @@ export async function initDb() {
         id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         field_label   TEXT NOT NULL DEFAULT '',
         field_type    TEXT NOT NULL DEFAULT 'textarea',
+        display_in    TEXT NOT NULL DEFAULT 'my_entry',
         field_options TEXT NOT NULL DEFAULT '',
         is_active     BOOLEAN NOT NULL DEFAULT TRUE,
         sort_order    INT NOT NULL DEFAULT 0,
@@ -86,6 +87,11 @@ export async function initDb() {
     // Add password_hash column to existing users table if it was created without it
     await client.query(`
       ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT NOT NULL DEFAULT '';
+    `);
+
+    // Add display target for custom fields (for existing databases)
+    await client.query(`
+      ALTER TABLE custom_fields ADD COLUMN IF NOT EXISTS display_in TEXT NOT NULL DEFAULT 'my_entry';
     `);
 
     // Ensure the primary admin account always exists
