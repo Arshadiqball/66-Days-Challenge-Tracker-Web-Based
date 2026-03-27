@@ -21,6 +21,7 @@ const emptyField = {
   field_type: 'textarea',
   display_in: 'my_entry',
   field_options: '',
+  description: '',
   is_active: true,
   sort_order: 0,
 };
@@ -44,6 +45,7 @@ export default function Admin() {
   const [userForm, setUserForm] = useState(emptyUserForm);
   const [userError, setUserError] = useState('');
   const [userSuccess, setUserSuccess] = useState('');
+  const [fieldError, setFieldError] = useState('');
 
   const loadUsers = async () => {
     setLoadingUsers(true);
@@ -101,15 +103,36 @@ export default function Admin() {
 
   const saveField = async () => {
     setSaving(true);
-    if (editingField.id) {
-      const updated = await entities.CustomField.update(editingField.id, editingField);
-      setCustomFields(prev => prev.map(f => f.id === updated.id ? updated : f));
+    setFieldError('');
+
+    const payload = { ...editingField };
+
+    if (payload.display_in === 'today_habit') {
+      payload.field_type = 'textarea';
+      payload.field_options = '';
     } else {
-      const created = await entities.CustomField.create(editingField);
-      setCustomFields(prev => [...prev, created]);
+      payload.description = '';
     }
-    setEditingField(null);
-    setSaving(false);
+
+    try {
+      if (editingField.id) {
+        const updated = await entities.CustomField.update(editingField.id, payload);
+        setCustomFields(prev => prev.map(f => f.id === updated.id ? updated : f));
+      } else {
+        const created = await entities.CustomField.create(payload);
+        setCustomFields(prev => [...prev, created]);
+      }
+      setEditingField(null);
+    } catch (err) {
+      const message = err?.message || 'Could not save custom field.';
+      if (message.toLowerCase().includes('description')) {
+        setFieldError('Could not save: database schema is outdated. Restart backend once and try again.');
+      } else {
+        setFieldError(message);
+      }
+    } finally {
+      setSaving(false);
+    }
   };
 
   const deleteField = async (id) => {
@@ -379,7 +402,7 @@ export default function Admin() {
       {/* CUSTOM FIELDS TAB */}
       {activeTab === 'fields' && (
         <div className="space-y-4">
-          <button onClick={() => setEditingField({ ...emptyField })}
+          <button onClick={() => { setFieldError(''); setEditingField({ ...emptyField }); }}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold"
             style={{ background: 'linear-gradient(135deg, #C9A84C, #A8882A)', color: '#1A1A2E' }}>
             <Plus size={16} /> Add Custom Field
@@ -391,26 +414,7 @@ export default function Admin() {
                 {editingField.id ? 'Edit' : 'New'} Custom Field
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Field Label</label>
-                  <input value={editingField.field_label}
-                    onChange={e => setEditingField(p => ({ ...p, field_label: e.target.value }))}
-                    className="w-full px-3 py-2 rounded-lg border text-sm outline-none"
-                    style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(201,168,76,0.2)', color: 'var(--text-primary)' }}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Field Type</label>
-                  <select value={editingField.field_type}
-                    onChange={e => setEditingField(p => ({ ...p, field_type: e.target.value }))}
-                    className="w-full px-3 py-2 rounded-lg border text-sm outline-none"
-                    style={{ background: 'rgba(22,33,62,0.9)', borderColor: 'rgba(201,168,76,0.2)', color: 'var(--text-primary)' }}>
-                    <option value="text">Short Text</option>
-                    <option value="textarea">Long Text</option>
-                    <option value="select">Dropdown</option>
-                    <option value="checkbox">Checkbox</option>
-                  </select>
-                </div>
+                {/* Display In — always first so other fields adapt */}
                 <div>
                   <label className="block text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Display In</label>
                   <select
@@ -419,11 +423,40 @@ export default function Admin() {
                     className="w-full px-3 py-2 rounded-lg border text-sm outline-none"
                     style={{ background: 'rgba(22,33,62,0.9)', borderColor: 'rgba(201,168,76,0.2)', color: 'var(--text-primary)' }}
                   >
-                    <option value="today_habit">Today's Habit</option>
                     <option value="my_entry">My Entry</option>
+                    <option value="today_habit">Today's Habit</option>
                   </select>
                 </div>
-                {editingField.field_type === 'select' && (
+                <div>
+                  <label className="block text-xs mb-1" style={{ color: 'var(--text-muted)' }}>
+                    {editingField.display_in === 'today_habit' ? 'Title' : 'Field Label'}
+                  </label>
+                  <input value={editingField.field_label}
+                    onChange={e => setEditingField(p => ({ ...p, field_label: e.target.value }))}
+                    placeholder={editingField.display_in === 'today_habit' ? 'Section title shown in Today\'s Habit' : 'Label shown to the user'}
+                    className="w-full px-3 py-2 rounded-lg border text-sm outline-none"
+                    style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(201,168,76,0.2)', color: 'var(--text-primary)' }}
+                  />
+                </div>
+
+                {/* My Entry mode: show Field Type */}
+                {editingField.display_in === 'my_entry' && (
+                  <div>
+                    <label className="block text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Field Type</label>
+                    <select value={editingField.field_type}
+                      onChange={e => setEditingField(p => ({ ...p, field_type: e.target.value }))}
+                      className="w-full px-3 py-2 rounded-lg border text-sm outline-none"
+                      style={{ background: 'rgba(22,33,62,0.9)', borderColor: 'rgba(201,168,76,0.2)', color: 'var(--text-primary)' }}>
+                      <option value="text">Short Text</option>
+                      <option value="textarea">Long Text</option>
+                      <option value="select">Dropdown</option>
+                      <option value="checkbox">Checkbox</option>
+                    </select>
+                  </div>
+                )}
+
+                {/* My Entry + select type: show Options */}
+                {editingField.display_in === 'my_entry' && editingField.field_type === 'select' && (
                   <div className="md:col-span-2">
                     <label className="block text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Options (comma-separated)</label>
                     <input value={editingField.field_options || ''}
@@ -434,6 +467,21 @@ export default function Admin() {
                     />
                   </div>
                 )}
+
+                {/* Today's Habit mode: show Description */}
+                {editingField.display_in === 'today_habit' && (
+                  <div className="md:col-span-2">
+                    <label className="block text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Description</label>
+                    <textarea value={editingField.description || ''}
+                      onChange={e => setEditingField(p => ({ ...p, description: e.target.value }))}
+                      placeholder="Content that will be displayed under this section in Today's Habit"
+                      rows={4}
+                      className="w-full px-3 py-2 rounded-lg border text-sm outline-none resize-none"
+                      style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(201,168,76,0.2)', color: 'var(--text-primary)' }}
+                    />
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Sort Order</label>
                   <input type="number" value={editingField.sort_order || 0}
@@ -449,12 +497,17 @@ export default function Admin() {
                   style={{ background: 'linear-gradient(135deg, #C9A84C, #A8882A)', color: '#1A1A2E' }}>
                   <Save size={14} /> {saving ? 'Saving...' : 'Save'}
                 </button>
-                <button onClick={() => setEditingField(null)}
+                <button onClick={() => { setFieldError(''); setEditingField(null); }}
                   className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm border hover:bg-white/5"
                   style={{ borderColor: 'rgba(255,255,255,0.1)', color: 'var(--text-muted)' }}>
                   <X size={14} /> Cancel
                 </button>
               </div>
+              {fieldError && (
+                <p className="text-xs mt-3" style={{ color: '#f87171' }}>
+                  {fieldError}
+                </p>
+              )}
             </div>
           )}
 
@@ -466,18 +519,22 @@ export default function Admin() {
                     {field.field_label}
                   </p>
                   <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                    {field.field_type} {field.field_options ? `· ${field.field_options}` : ''}
-                  </p>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
                     {field.display_in === 'today_habit' ? "Today's Habit" : 'My Entry'}
+                    {field.display_in === 'my_entry' && ` · ${field.field_type}`}
+                    {field.display_in === 'my_entry' && field.field_options ? ` · ${field.field_options}` : ''}
                   </p>
+                  {field.display_in === 'today_habit' && field.description && (
+                    <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-muted)' }}>
+                      {field.description}
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <button onClick={() => toggleFieldActive(field)}
                     className={`text-xs px-2.5 py-1 rounded-lg font-medium transition-all ${field.is_active ? 'bg-emerald-500/15 text-emerald-400' : 'bg-white/5 text-gray-500'}`}>
                     {field.is_active ? 'Active' : 'Inactive'}
                   </button>
-                  <button onClick={() => setEditingField({ ...field })}
+                  <button onClick={() => { setFieldError(''); setEditingField({ ...field }); }}
                     className="p-1.5 rounded-lg hover:bg-white/10" style={{ color: 'var(--brand-gold)' }}>
                     <Edit3 size={14} />
                   </button>

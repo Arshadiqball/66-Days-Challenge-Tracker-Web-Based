@@ -94,6 +94,15 @@ export async function initDb() {
       ALTER TABLE custom_fields ADD COLUMN IF NOT EXISTS display_in TEXT NOT NULL DEFAULT 'my_entry';
     `);
 
+    await client.query(`
+      ALTER TABLE custom_fields ADD COLUMN IF NOT EXISTS description TEXT NOT NULL DEFAULT '';
+    `);
+
+    // Store custom field answers as JSON on habit_logs
+    await client.query(`
+      ALTER TABLE habit_logs ADD COLUMN IF NOT EXISTS custom_data JSONB NOT NULL DEFAULT '{}';
+    `);
+
     // Ensure the primary admin account always exists
     await client.query(`
       INSERT INTO users (email, full_name, role, password_hash)

@@ -15,9 +15,16 @@ export default function DayDetail() {
 
   const [dayContent,   setDayContent]   = useState(null);
   const [existingLog,  setExistingLog]  = useState(null);
+  const [customFields, setCustomFields] = useState([]);
   const [loading,      setLoading]      = useState(true);
   const [tab,          setTab]          = useState('content');
   const navigate = useNavigate();
+
+  useEffect(() => {
+    entities.CustomField.filter({ is_active: true })
+      .then(fields => setCustomFields(fields))
+      .catch(() => setCustomFields([]));
+  }, []);
 
   const load = async () => {
     setLoading(true);
@@ -108,6 +115,20 @@ export default function DayDetail() {
                 🔗 Stacked
               </span>
             )}
+            {/* Show custom field values from saved log */}
+            {existingLog.custom_data && customFields
+              .filter(cf => existingLog.custom_data[cf.id] && cf.display_in === 'my_entry')
+              .slice(0, 3)
+              .map(cf => {
+                const val = existingLog.custom_data[cf.id];
+                const display = typeof val === 'boolean' ? (val ? '✓' : '✗') : String(val).slice(0, 30);
+                return (
+                  <span key={cf.id} className="text-xs px-2.5 py-1 rounded-lg font-medium bg-white/5"
+                    style={{ color: 'var(--text-secondary)' }}>
+                    {cf.field_label}: {display}
+                  </span>
+                );
+              })}
           </div>
         )}
       </div>

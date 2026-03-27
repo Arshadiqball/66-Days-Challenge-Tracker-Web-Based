@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CheckCircle, Circle, Trophy, ChevronDown } from 'lucide-react';
 import { entities } from '@/api/entities';
 
@@ -17,6 +17,69 @@ const MoodButton = ({ mood, label, emoji, selected, onClick }) => (
   </button>
 );
 
+function CustomFieldInput({ field, value, onChange }) {
+  const baseClasses = 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm outline-none focus:border-yellow-500/50 transition-colors';
+  const baseStyle = { color: 'var(--text-primary)', caretColor: '#C9A84C' };
+
+  if (field.field_type === 'checkbox') {
+    return (
+      <label className="flex items-center gap-3 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={!!value}
+          onChange={e => onChange(e.target.checked)}
+          className="w-5 h-5 rounded accent-yellow-500"
+        />
+        <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+          {field.field_label}
+        </span>
+      </label>
+    );
+  }
+
+  if (field.field_type === 'select') {
+    const options = (field.field_options || '').split(',').map(o => o.trim()).filter(Boolean);
+    return (
+      <select
+        value={value || ''}
+        onChange={e => onChange(e.target.value)}
+        className={`${baseClasses} appearance-none`}
+        style={{ ...baseStyle, backgroundImage: 'none' }}
+      >
+        <option value="">Select...</option>
+        {options.map(opt => (
+          <option key={opt} value={opt}>{opt}</option>
+        ))}
+      </select>
+    );
+  }
+
+  if (field.field_type === 'text') {
+    return (
+      <input
+        type="text"
+        value={value || ''}
+        onChange={e => onChange(e.target.value)}
+        placeholder={`Enter ${field.field_label.toLowerCase()}...`}
+        className={baseClasses}
+        style={baseStyle}
+      />
+    );
+  }
+
+  // Default: textarea
+  return (
+    <textarea
+      value={value || ''}
+      onChange={e => onChange(e.target.value)}
+      placeholder={`Enter ${field.field_label.toLowerCase()}...`}
+      rows={3}
+      className={`${baseClasses} resize-none`}
+      style={baseStyle}
+    />
+  );
+}
+
 export default function HabitLogForm({ dayContent, existingLog, userEmail, onSave }) {
   const isDay1 = dayContent?.day_number === 1;
 
@@ -28,11 +91,31 @@ export default function HabitLogForm({ dayContent, existingLog, userEmail, onSav
     mood: existingLog?.mood ?? '',
     notes: existingLog?.notes ?? '',
   });
+  const [customData, setCustomData] = useState(existingLog?.custom_data ?? {});
+  const [customFields, setCustomFields] = useState([]);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  useEffect(() => {
+    entities.CustomField.filter({ is_active: true, display_in: 'my_entry' })
+      .then(fields => {
+        const sorted = [...fields].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+        setCustomFields(sorted);
+      })
+      .catch(() => setCustomFields([]));
+  }, []);
+
+  useEffect(() => {
+    setCustomData(existingLog?.custom_data ?? {});
+  }, [existingLog]);
+
   const handleChange = (field, value) => {
     setForm(prev => ({ ...prev, [field]: value }));
+    setSaved(false);
+  };
+
+  const handleCustomChange = (fieldId, value) => {
+    setCustomData(prev => ({ ...prev, [fieldId]: value }));
     setSaved(false);
   };
 
@@ -41,6 +124,7 @@ export default function HabitLogForm({ dayContent, existingLog, userEmail, onSav
     const trophy = form.completed && form.habit_stacked === 'yes';
     const payload = {
       ...form,
+      custom_data: customData,
       trophy_earned: trophy,
       user_email: userEmail,
       day_number: dayContent.day_number,
@@ -135,6 +219,22 @@ export default function HabitLogForm({ dayContent, existingLog, userEmail, onSav
           <MoodButton mood="negative" label="Negative" emoji="😔" selected={form.mood === 'negative'} onClick={v => handleChange('mood', v)} />
         </div>
       </div>
+
+      {/* Custom Fields (display_in = my_entry) */}
+      {customFields.map(cf => (
+        <div key={cf.id} className="glass-card rounded-2xl p-5 border border-gold">
+          {cf.field_type !== 'checkbox' && (
+            <p className="text-xs uppercase tracking-widest font-semibold mb-3" style={{ color: 'var(--text-muted)' }}>
+              {cf.field_label}
+            </p>
+          )}
+          <CustomFieldInput
+            field={cf}
+            value={customData[cf.id]}
+            onChange={val => handleCustomChange(cf.id, val)}
+          />
+        </div>
+      ))}
 
       {/* Notes */}
       <div className="glass-card rounded-2xl p-5 border border-gold">

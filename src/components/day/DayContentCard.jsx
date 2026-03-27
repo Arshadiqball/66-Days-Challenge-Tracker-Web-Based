@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Quote, Lightbulb, Target, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Quote, Lightbulb, Target, Sparkles, ChevronDown, ChevronUp, LayoutList } from 'lucide-react';
+import { entities } from '@/api/entities';
 
 const Section = ({ icon: Icon, title, content, accent = false }) => {
   const [open, setOpen] = useState(true);
@@ -28,6 +29,17 @@ const Section = ({ icon: Icon, title, content, accent = false }) => {
 };
 
 export default function DayContentCard({ dayContent }) {
+  const [customFields, setCustomFields] = useState([]);
+
+  useEffect(() => {
+    entities.CustomField.filter({ is_active: true, display_in: 'today_habit' })
+      .then(fields => {
+        const sorted = [...fields].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+        setCustomFields(sorted);
+      })
+      .catch(() => setCustomFields([]));
+  }, []);
+
   if (!dayContent) return null;
 
   return (
@@ -53,6 +65,17 @@ export default function DayContentCard({ dayContent }) {
       <Section icon={Lightbulb} title="Why This Habit Matters" content={dayContent.why_this_habit} />
       <Section icon={Target} title="Today's Action Plan" content={dayContent.action_plan} accent />
       <Section icon={Sparkles} title="Today's Affirmation" content={dayContent.affirmation} />
+
+      {/* Custom fields for Today's Habit */}
+      {customFields.map(cf => (
+        <Section
+          key={cf.id}
+          icon={LayoutList}
+          title={cf.field_label}
+          content={cf.description}
+          accent
+        />
+      ))}
     </div>
   );
 }
