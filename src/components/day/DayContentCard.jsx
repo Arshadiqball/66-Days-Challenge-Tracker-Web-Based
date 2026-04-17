@@ -48,14 +48,14 @@ export default function DayContentCard({ dayContent }) {
       {dayContent.quote_of_day && (
         <div className="glass-card rounded-2xl p-5 border-gold border"
           style={{ background: 'linear-gradient(135deg, rgba(201,168,76,0.1), rgba(168,136,42,0.05))' }}>
-          <div className="flex gap-3">
-            <Quote size={20} style={{ color: 'var(--brand-gold)', flexShrink: 0, marginTop: 2 }} />
-            <div>
-              <p className="text-sm italic leading-relaxed font-playfair" style={{ color: 'var(--text-primary)' }}>
+          <div className="flex gap-3 sm:gap-4">
+            <Quote className="shrink-0 mt-0.5 sm:mt-1 w-6 h-6 sm:w-7 sm:h-7" style={{ color: 'var(--brand-gold)' }} />
+            <div className="min-w-0 flex-1">
+              <p className="text-lg sm:text-xl md:text-2xl italic leading-snug sm:leading-relaxed font-playfair" style={{ color: 'var(--text-primary)' }}>
                 "{dayContent.quote_of_day}"
               </p>
               {dayContent.quote_author && (
-                <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>— {dayContent.quote_author}</p>
+                <p className="text-sm sm:text-base mt-2 sm:mt-3" style={{ color: 'var(--text-muted)' }}>— {dayContent.quote_author}</p>
               )}
             </div>
           </div>
