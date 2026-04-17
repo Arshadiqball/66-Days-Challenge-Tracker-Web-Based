@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import { AuthShell, Field, ErrorMsg, SuccessMsg, SubmitButton, inputCls } from './Login';
 
@@ -8,11 +7,10 @@ export default function Register() {
   const { user, createUserByAdmin } = useAuth();
   const navigate     = useNavigate();
 
-  const [form, setForm]       = useState({ full_name: '', email: '', password: '', confirm: '' });
+  const [form, setForm]       = useState({ full_name: '', email: '' });
   const [error, setError]     = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showPwd, setShowPwd] = useState(false);
 
   const set = (k, v) => {
     setForm(p => ({ ...p, [k]: v }));
@@ -22,20 +20,17 @@ export default function Register() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.full_name || !form.email || !form.password) {
+    if (!form.full_name || !form.email) {
       setError('Please fill in all required fields'); return;
-    }
-    if (form.password.length < 6) {
-      setError('Password must be at least 6 characters'); return;
-    }
-    if (form.password !== form.confirm) {
-      setError('Passwords do not match'); return;
     }
     setLoading(true);
     try {
-      await createUserByAdmin({ full_name: form.full_name.trim(), email: form.email.trim(), password: form.password });
-      setSuccess('Account created successfully.');
-      setForm({ full_name: '', email: '', password: '', confirm: '' });
+      const result = await createUserByAdmin({ full_name: form.full_name.trim(), email: form.email.trim() });
+      const emailLine = result.welcome_email_sent
+        ? ' A welcome email with sign-in details was sent.'
+        : ` No email was sent: ${result.welcome_email_error || 'configure SMTP on the server.'}`;
+      setSuccess(`Account created.${emailLine}`);
+      setForm({ full_name: '', email: '' });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -76,25 +71,9 @@ export default function Register() {
             className={inputCls} />
         </Field>
 
-        <Field label="Password">
-          <div className="relative">
-            <input type={showPwd ? 'text' : 'password'} autoComplete="new-password"
-              placeholder="Min. 6 characters"
-              value={form.password} onChange={e => set('password', e.target.value)}
-              className={`${inputCls} pr-10`} />
-            <button type="button" tabIndex={-1} onClick={() => setShowPwd(v => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }}>
-              {showPwd ? <EyeOff size={15} /> : <Eye size={15} />}
-            </button>
-          </div>
-        </Field>
-
-        <Field label="Confirm password">
-          <input type={showPwd ? 'text' : 'password'} autoComplete="new-password"
-            placeholder="Re-enter password"
-            value={form.confirm} onChange={e => set('confirm', e.target.value)}
-            className={inputCls} />
-        </Field>
+        <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+          The server assigns a temporary password and emails sign-in instructions when SMTP is configured in the backend environment.
+        </p>
 
         {error && <ErrorMsg msg={error} />}
         {success && <SuccessMsg msg={success} />}

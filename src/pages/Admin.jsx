@@ -25,7 +25,7 @@ const emptyField = {
   is_active: true,
   sort_order: 0,
 };
-const emptyUserForm = { full_name: '', email: '', password: '', confirm: '' };
+const emptyUserForm = { full_name: '', email: '' };
 
 export default function Admin() {
   const { user, createUserByAdmin } = useAuth();
@@ -153,27 +153,21 @@ export default function Admin() {
 
   const createUser = async (e) => {
     e.preventDefault();
-    if (!userForm.full_name || !userForm.email || !userForm.password) {
-      setUserError('Please fill in all required fields.');
-      return;
-    }
-    if (userForm.password.length < 6) {
-      setUserError('Password must be at least 6 characters.');
-      return;
-    }
-    if (userForm.password !== userForm.confirm) {
-      setUserError('Passwords do not match.');
+    if (!userForm.full_name || !userForm.email) {
+      setUserError('Please fill in full name and email.');
       return;
     }
 
     setCreatingUser(true);
     try {
-      await createUserByAdmin({
+      const result = await createUserByAdmin({
         full_name: userForm.full_name.trim(),
         email: userForm.email.trim(),
-        password: userForm.password,
       });
-      setUserSuccess('User created successfully.');
+      const emailNote = result.welcome_email_sent
+        ? ' Welcome email sent with sign-in details.'
+        : ` No email sent — ${result.welcome_email_error || 'configure SMTP on the server.'}`;
+      setUserSuccess(`User created.${emailNote}`);
       setUserForm(emptyUserForm);
       await loadUsers();
     } catch (err) {
@@ -583,25 +577,11 @@ export default function Admin() {
                   style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(201,168,76,0.2)', color: 'var(--text-primary)' }}
                 />
               </div>
-              <div>
-                <label className="block text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Password</label>
-                <input
-                  type="password"
-                  value={userForm.password}
-                  onChange={e => setUserField('password', e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border text-sm outline-none"
-                  style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(201,168,76,0.2)', color: 'var(--text-primary)' }}
-                />
-              </div>
-              <div>
-                <label className="block text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Confirm Password</label>
-                <input
-                  type="password"
-                  value={userForm.confirm}
-                  onChange={e => setUserField('confirm', e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border text-sm outline-none"
-                  style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(201,168,76,0.2)', color: 'var(--text-primary)' }}
-                />
+              <div className="md:col-span-2">
+                <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                  A temporary password is assigned by the server and the user is prompted to set their own password on first login.
+                  When SMTP environment variables are set on the backend, a welcome email is sent automatically.
+                </p>
               </div>
               <div className="md:col-span-2 flex items-center gap-3">
                 <button

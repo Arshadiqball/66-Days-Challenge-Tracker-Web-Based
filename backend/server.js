@@ -5,8 +5,12 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { pool, initDb, ENTITY_TABLE } from './db.js';
+import { sendNewUserWelcomeEmail } from './mail.js';
 
 dotenv.config();
+
+const NEW_USER_TEMP_PASSWORD = process.env.NEW_USER_TEMP_PASSWORD || '123aBc';
+const APP_PUBLIC_URL = (process.env.APP_PUBLIC_URL || 'http://localhost:5173').replace(/\/$/, '');
 
 const app     = express();
 const PORT    = Number(process.env.BACKEND_PORT || 8000);
@@ -77,11 +81,10 @@ app.get('/api/apps/public/prod/public-settings/by-id/:id', (_req, res) => {
 
 // ─── Auth Routes ──────────────────────────────────────────────────────────────
 
-// REGISTER
+// REGISTER (admin-only): assigns temporary password, flags first-login password change, emails credentials when SMTP is configured
 app.post('/api/auth/register', async (req, res) => {
-  const { email, password, full_name } = req.body;
-  if (!email || !password) return badRequest(res, 'Email and password are required');
-  if (password.length < 6) return badRequest(res, 'Password must be at least 6 characters');
+  const { email, full_name } = req.body;
+  if (!email?.trim()) return badRequest(res, 'Email is required');
 
   const raw = getTokenFromRequest(req);
   if (!raw) return unauthorized(res, 'Admin authentication required');
@@ -92,14 +95,28 @@ app.post('/api/auth/register', async (req, res) => {
     const exists = await pool.query('SELECT id FROM users WHERE email = $1', [email.toLowerCase()]);
     if (exists.rows.length) return badRequest(res, 'An account with this email already exists');
 
-    const hash = await bcrypt.hash(password, SALT_ROUNDS);
+    const hash = await bcrypt.hash(NEW_USER_TEMP_PASSWORD, SALT_ROUNDS);
     const { rows } = await pool.query(
-      `INSERT INTO users (email, full_name, password_hash, role)
-       VALUES ($1, $2, $3, 'user') RETURNING id, email, full_name, role, created_at`,
+      `INSERT INTO users (email, full_name, password_hash, role, must_change_password)
+       VALUES ($1, $2, $3, 'user', TRUE)
+       RETURNING id, email, full_name, role, created_at, must_change_password`,
       [email.toLowerCase(), full_name?.trim() || '', hash]
     );
     const user = rows[0];
-    created(res, { user });
+
+    const loginUrl = `${APP_PUBLIC_URL}/Login`;
+    const mailResult = await sendNewUserWelcomeEmail({
+      to: user.email,
+      fullName: user.full_name || '',
+      tempPassword: NEW_USER_TEMP_PASSWORD,
+      loginUrl,
+    });
+
+    created(res, {
+      user,
+      welcome_email_sent: mailResult.sent,
+      welcome_email_error: mailResult.error || null,
+    });
   } catch (err) {
     console.error('[register]', err.message);
     res.status(500).json({ error: 'Registration failed' });
@@ -191,7 +208,10 @@ app.post('/api/auth/reset-password', async (req, res) => {
     const resetRecord = rows[0];
     const hash = await bcrypt.hash(password, SALT_ROUNDS);
 
-    await pool.query('UPDATE users SET password_hash = $1 WHERE email = $2', [hash, resetRecord.user_email]);
+    await pool.query(
+      'UPDATE users SET password_hash = $1, must_change_password = FALSE WHERE email = $2',
+      [hash, resetRecord.user_email]
+    );
     await pool.query('UPDATE password_reset_tokens SET used = TRUE WHERE id = $1', [resetRecord.id]);
 
     ok(res, { message: 'Password reset successfully. You can now log in.' });
@@ -212,7 +232,7 @@ app.get('/api/apps/:appId/entities/User/me', async (req, res) => {
 
   try {
     const { rows } = await pool.query(
-      'SELECT id, email, full_name, role, created_at FROM users WHERE id = $1',
+      'SELECT id, email, full_name, role, created_at, must_change_password FROM users WHERE id = $1',
       [payload.id]
     );
     if (!rows.length) return notFound(res, 'User not found');
@@ -240,6 +260,33 @@ function requireAuth(req, res, next) {
   req.authUser = payload; // { id, email, role }
   next();
 }
+
+// CHANGE PASSWORD (authenticated; clears must_change_password after first login)
+app.post('/api/auth/change-password', requireAuth, async (req, res) => {
+  const { current_password, new_password } = req.body;
+  if (!current_password || !new_password) return badRequest(res, 'Current password and new password are required');
+  if (new_password.length < 6) return badRequest(res, 'New password must be at least 6 characters');
+
+  try {
+    const { rows } = await pool.query('SELECT * FROM users WHERE id = $1', [req.authUser.id]);
+    if (!rows.length) return notFound(res, 'User not found');
+
+    const row = rows[0];
+    const valid = await bcrypt.compare(current_password, row.password_hash);
+    if (!valid) return unauthorized(res, 'Current password is incorrect');
+
+    const hash = await bcrypt.hash(new_password, SALT_ROUNDS);
+    const { rows: updated } = await pool.query(
+      `UPDATE users SET password_hash = $1, must_change_password = FALSE WHERE id = $2
+       RETURNING id, email, full_name, role, created_at, must_change_password`,
+      [hash, req.authUser.id]
+    );
+    ok(res, { user: updated[0] });
+  } catch (err) {
+    console.error('[change-password]', err.message);
+    res.status(500).json({ error: 'Password change failed' });
+  }
+});
 
 // Tables whose records are always scoped to the authenticated user
 const USER_SCOPED_TABLES = new Set(['habit_logs']);

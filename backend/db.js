@@ -103,6 +103,10 @@ export async function initDb() {
       ALTER TABLE habit_logs ADD COLUMN IF NOT EXISTS custom_data JSONB NOT NULL DEFAULT '{}';
     `);
 
+    await client.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN NOT NULL DEFAULT FALSE;
+    `);
+
     // Ensure the primary admin account always exists
     await client.query(`
       INSERT INTO users (email, full_name, role, password_hash)

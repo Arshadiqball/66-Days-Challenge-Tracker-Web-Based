@@ -19,8 +19,8 @@ export default function Login() {
     if (!form.email || !form.password) { setError('Please fill in all fields'); return; }
     setLoading(true);
     try {
-      await login({ email: form.email.trim(), password: form.password });
-      navigate('/');
+      const u = await login({ email: form.email.trim(), password: form.password });
+      navigate(u?.must_change_password ? '/ChangePassword' : '/');
     } catch (err) {
       setError(err.message);
     } finally {

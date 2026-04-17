@@ -41,17 +41,16 @@ export const AuthProvider = ({ children }) => {
       .finally(() => setIsLoading(false));
   }, []);
 
-  // ── Admin creates users ────────────────────────────────────────────────────
-  const createUserByAdmin = useCallback(async ({ email, password, full_name }) => {
+  // ── Admin creates users (server assigns temp password + optional welcome email) ─
+  const createUserByAdmin = useCallback(async ({ email, full_name }) => {
     const token = localStorage.getItem(TOKEN_KEY);
     if (!token) throw new Error('Authentication required');
 
-    const { user: createdUser } = await apiPost(
+    return apiPost(
       `${API_BASE}/register`,
-      { email, password, full_name },
+      { email, full_name },
       { token }
     );
-    return createdUser;
   }, []);
 
   // ── Login ──────────────────────────────────────────────────────────────────
@@ -60,6 +59,18 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem(TOKEN_KEY, token);
     setUser(u);
     setIsAuthenticated(true);
+    return u;
+  }, []);
+
+  const changePassword = useCallback(async ({ current_password, new_password }) => {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) throw new Error('Authentication required');
+    const { user: u } = await apiPost(
+      `${API_BASE}/change-password`,
+      { current_password, new_password },
+      { token }
+    );
+    setUser(u);
     return u;
   }, []);
 
@@ -90,6 +101,7 @@ export const AuthProvider = ({ children }) => {
       logout,
       forgotPassword,
       resetPassword,
+      changePassword,
     }}>
       {children}
     </AuthContext.Provider>
