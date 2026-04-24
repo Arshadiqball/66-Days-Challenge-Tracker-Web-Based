@@ -81,6 +81,56 @@ app.get('/api/apps/public/prod/public-settings/by-id/:id', (_req, res) => {
 
 // ─── Auth Routes ──────────────────────────────────────────────────────────────
 
+/** Creates a standard user with temp password + optional welcome email. */
+async function registerUserWithTempPassword(email, full_name) {
+  const exists = await pool.query('SELECT id FROM users WHERE email = $1', [email.toLowerCase()]);
+  if (exists.rows.length) {
+    const err = new Error('EMAIL_EXISTS');
+    err.code = 'EMAIL_EXISTS';
+    throw err;
+  }
+
+  const hash = await bcrypt.hash(NEW_USER_TEMP_PASSWORD, SALT_ROUNDS);
+  const { rows } = await pool.query(
+    `INSERT INTO users (email, full_name, password_hash, role, must_change_password)
+     VALUES ($1, $2, $3, 'user', TRUE)
+     RETURNING id, email, full_name, role, created_at, must_change_password`,
+    [email.toLowerCase(), full_name?.trim() || '', hash]
+  );
+  const user = rows[0];
+
+  const loginUrl = `${APP_PUBLIC_URL}/Login`;
+  const mailResult = await sendNewUserWelcomeEmail({
+    to: user.email,
+    fullName: user.full_name || '',
+    tempPassword: NEW_USER_TEMP_PASSWORD,
+    loginUrl,
+  });
+
+  return {
+    user,
+    welcome_email_sent: mailResult.sent,
+    welcome_email_error: mailResult.error || null,
+  };
+}
+
+// SIGNUP (public): same account creation as admin register; no auth required
+app.post('/api/auth/signup', async (req, res) => {
+  const { email, full_name } = req.body;
+  if (!email?.trim()) return badRequest(res, 'Email is required');
+
+  try {
+    const result = await registerUserWithTempPassword(email, full_name);
+    created(res, result);
+  } catch (err) {
+    if (err.code === 'EMAIL_EXISTS') {
+      return badRequest(res, 'An account with this email already exists');
+    }
+    console.error('[signup]', err.message);
+    res.status(500).json({ error: 'Registration failed' });
+  }
+});
+
 // REGISTER (admin-only): assigns temporary password, flags first-login password change, emails credentials when SMTP is configured
 app.post('/api/auth/register', async (req, res) => {
   const { email, full_name } = req.body;
@@ -92,32 +142,12 @@ app.post('/api/auth/register', async (req, res) => {
   if (!payload || payload.role !== 'admin') return unauthorized(res, 'Admin access required');
 
   try {
-    const exists = await pool.query('SELECT id FROM users WHERE email = $1', [email.toLowerCase()]);
-    if (exists.rows.length) return badRequest(res, 'An account with this email already exists');
-
-    const hash = await bcrypt.hash(NEW_USER_TEMP_PASSWORD, SALT_ROUNDS);
-    const { rows } = await pool.query(
-      `INSERT INTO users (email, full_name, password_hash, role, must_change_password)
-       VALUES ($1, $2, $3, 'user', TRUE)
-       RETURNING id, email, full_name, role, created_at, must_change_password`,
-      [email.toLowerCase(), full_name?.trim() || '', hash]
-    );
-    const user = rows[0];
-
-    const loginUrl = `${APP_PUBLIC_URL}/Login`;
-    const mailResult = await sendNewUserWelcomeEmail({
-      to: user.email,
-      fullName: user.full_name || '',
-      tempPassword: NEW_USER_TEMP_PASSWORD,
-      loginUrl,
-    });
-
-    created(res, {
-      user,
-      welcome_email_sent: mailResult.sent,
-      welcome_email_error: mailResult.error || null,
-    });
+    const out = await registerUserWithTempPassword(email, full_name);
+    created(res, out);
   } catch (err) {
+    if (err.code === 'EMAIL_EXISTS') {
+      return badRequest(res, 'An account with this email already exists');
+    }
     console.error('[register]', err.message);
     res.status(500).json({ error: 'Registration failed' });
   }

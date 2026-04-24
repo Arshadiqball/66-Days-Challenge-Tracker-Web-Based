@@ -6,6 +6,7 @@ import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
 import ForcePasswordChange from './pages/ForcePasswordChange';
 
@@ -35,6 +36,7 @@ const AuthenticatedApp = () => {
     <Routes>
       {/* Public auth routes — always accessible */}
       <Route path="/Login"          element={isAuthenticated ? <Navigate to={mustChangePassword ? '/ChangePassword' : '/'} replace /> : <Login />} />
+      <Route path="/Signup"         element={isAuthenticated ? <Navigate to={mustChangePassword ? '/ChangePassword' : '/'} replace /> : <Signup />} />
       <Route path="/ForgotPassword" element={<ForgotPassword />} />
       <Route path="/ResetPassword"  element={<ForgotPassword />} />
 
