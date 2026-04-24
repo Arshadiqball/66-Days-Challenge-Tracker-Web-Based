@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Trophy, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 
 export default function Login() {
   const { login } = useAuth();
-  const navigate  = useNavigate();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const signupOk = Boolean(location.state?.signupOk);
 
   const [form,    setForm]    = useState({ email: '', password: '' });
   const [error,   setError]   = useState('');
@@ -31,6 +33,10 @@ export default function Login() {
   return (
     <AuthShell title="Welcome back" subtitle="Sign in to continue your journey">
       <form onSubmit={handleSubmit} className="space-y-4">
+        {signupOk && (
+          <SuccessMsg msg="Account created. Sign in with your email and password." />
+        )}
+
         <Field label="Email address">
           <input
             type="email" autoComplete="email" placeholder="you@example.com"

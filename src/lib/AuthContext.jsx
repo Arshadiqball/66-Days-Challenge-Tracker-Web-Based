@@ -53,9 +53,9 @@ export const AuthProvider = ({ children }) => {
     );
   }, []);
 
-  // ── Public self-service signup (same server behavior as admin-created users) ─
-  const signup = useCallback(async ({ email, full_name }) => {
-    return apiPost(`${API_BASE}/signup`, { email, full_name });
+  // ── Public self-service signup (username, email, chosen password) ─
+  const signup = useCallback(async ({ username, email, password }) => {
+    return apiPost(`${API_BASE}/signup`, { username, email, password });
   }, []);
 
   // ── Login ──────────────────────────────────────────────────────────────────

@@ -1,36 +1,37 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
-import { AuthShell, Field, ErrorMsg, SuccessMsg, SubmitButton, inputCls } from './Login';
+import { AuthShell, Field, ErrorMsg, SubmitButton, inputCls } from './Login';
 
 export default function Signup() {
   const { signup } = useAuth();
+  const navigate = useNavigate();
 
-  const [form, setForm] = useState({ full_name: '', email: '' });
+  const [form, setForm] = useState({ username: '', email: '', password: '' });
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPwd, setShowPwd] = useState(false);
 
   const set = (k, v) => {
     setForm(p => ({ ...p, [k]: v }));
     setError('');
-    setSuccess('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.full_name || !form.email) {
-      setError('Please fill in all required fields');
+    if (!form.username || !form.email || !form.password) {
+      setError('Please fill in all fields');
       return;
     }
     setLoading(true);
     try {
-      const result = await signup({ full_name: form.full_name.trim(), email: form.email.trim() });
-      const emailLine = result.welcome_email_sent
-        ? ' A welcome email with sign-in details was sent.'
-        : ` No email was sent: ${result.welcome_email_error || 'configure SMTP on the server.'}`;
-      setSuccess(`Account created.${emailLine}`);
-      setForm({ full_name: '', email: '' });
+      await signup({
+        username: form.username.trim(),
+        email: form.email.trim(),
+        password: form.password,
+      });
+      navigate('/Login', { replace: true, state: { signupOk: true } });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -39,15 +40,15 @@ export default function Signup() {
   };
 
   return (
-    <AuthShell title="Create your account" subtitle="Join the challenge — you will set your password on first sign in">
+    <AuthShell title="Create your account" subtitle="Choose a username, email, and password">
       <form onSubmit={handleSubmit} className="space-y-4">
-        <Field label="Full name">
+        <Field label="Username">
           <input
             type="text"
-            autoComplete="name"
-            placeholder="Your name"
-            value={form.full_name}
-            onChange={e => set('full_name', e.target.value)}
+            autoComplete="username"
+            placeholder="jane_doe"
+            value={form.username}
+            onChange={e => set('username', e.target.value)}
             className={inputCls}
           />
         </Field>
@@ -63,12 +64,29 @@ export default function Signup() {
           />
         </Field>
 
-        <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-          The server assigns a temporary password and emails sign-in instructions when SMTP is configured in the backend environment.
-        </p>
+        <Field label="Password">
+          <div className="relative">
+            <input
+              type={showPwd ? 'text' : 'password'}
+              autoComplete="new-password"
+              placeholder="At least 6 characters"
+              value={form.password}
+              onChange={e => set('password', e.target.value)}
+              className={`${inputCls} pr-10`}
+            />
+            <button
+              type="button"
+              tabIndex={-1}
+              onClick={() => setShowPwd(v => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              {showPwd ? <EyeOff size={15} /> : <Eye size={15} />}
+            </button>
+          </div>
+        </Field>
 
         {error && <ErrorMsg msg={error} />}
-        {success && <SuccessMsg msg={success} />}
 
         <SubmitButton loading={loading}>Create account</SubmitButton>
       </form>

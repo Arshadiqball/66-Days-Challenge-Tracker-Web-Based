@@ -114,18 +114,26 @@ async function registerUserWithTempPassword(email, full_name) {
   };
 }
 
-// SIGNUP (public): same account creation as admin register; no auth required
+// SIGNUP (public): username + email + password; no welcome email
 app.post('/api/auth/signup', async (req, res) => {
-  const { email, full_name } = req.body;
+  const { username, email, password } = req.body;
+  if (!username?.trim()) return badRequest(res, 'Username is required');
   if (!email?.trim()) return badRequest(res, 'Email is required');
+  if (!password || password.length < 6) return badRequest(res, 'Password must be at least 6 characters');
 
   try {
-    const result = await registerUserWithTempPassword(email, full_name);
-    created(res, result);
+    const exists = await pool.query('SELECT id FROM users WHERE email = $1', [email.toLowerCase()]);
+    if (exists.rows.length) return badRequest(res, 'An account with this email already exists');
+
+    const hash = await bcrypt.hash(password, SALT_ROUNDS);
+    const { rows } = await pool.query(
+      `INSERT INTO users (email, full_name, password_hash, role, must_change_password)
+       VALUES ($1, $2, $3, 'user', FALSE)
+       RETURNING id, email, full_name, role, created_at, must_change_password`,
+      [email.toLowerCase(), username.trim(), hash]
+    );
+    created(res, { user: rows[0] });
   } catch (err) {
-    if (err.code === 'EMAIL_EXISTS') {
-      return badRequest(res, 'An account with this email already exists');
-    }
     console.error('[signup]', err.message);
     res.status(500).json({ error: 'Registration failed' });
   }
