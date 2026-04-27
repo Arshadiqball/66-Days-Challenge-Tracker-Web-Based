@@ -85,3 +85,45 @@ export async function sendNewUserWelcomeEmail({ to, fullName, tempPassword, logi
     return { sent: false, error: 'Could not send email. Check SMTP settings and server logs.' };
   }
 }
+
+/**
+ * @param {{ to: string, resetUrl: string }} opts
+ * @returns {Promise<{ sent: boolean, error?: string }>}
+ */
+export async function sendPasswordResetEmail({ to, resetUrl }) {
+  const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+  const transporter = createMailer();
+  if (!transporter) {
+    return {
+      sent: false,
+      error: 'SMTP is not configured. Set SMTP_HOST, SMTP_USER, and SMTP_PASS in the server environment.',
+    };
+  }
+
+  const subject = 'Reset your password — 66 Day Challenge';
+  const text = [
+    'You requested a password reset for your dashboard account.',
+    '',
+    'Open this link to choose a new password (the link expires soon):',
+    '',
+    resetUrl,
+    '',
+    'If you did not request this, you can ignore this email.',
+  ].join('\n');
+
+  const html = `
+    <p>You requested a password reset for your <strong>66 Day Challenge</strong> dashboard account.</p>
+    <p><a href="${escapeHtml(resetUrl)}">Choose a new password</a></p>
+    <p style="color:#666;font-size:12px;">If the button does not work, copy and paste this URL into your browser:<br/>
+    <span style="word-break:break-all;">${escapeHtml(resetUrl)}</span></p>
+    <p style="color:#666;font-size:12px;">If you did not request this, you can ignore this email.</p>
+  `;
+
+  try {
+    await transporter.sendMail({ from, to, subject, text, html });
+    return { sent: true };
+  } catch (err) {
+    console.error('[mail] password reset email failed:', err.message);
+    return { sent: false, error: 'Could not send email. Check SMTP settings and server logs.' };
+  }
+}

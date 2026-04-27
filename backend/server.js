@@ -5,7 +5,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { pool, initDb, ENTITY_TABLE } from './db.js';
-import { sendNewUserWelcomeEmail } from './mail.js';
+import { sendNewUserWelcomeEmail, sendPasswordResetEmail, isSmtpConfigured } from './mail.js';
 
 dotenv.config();
 
@@ -191,10 +191,14 @@ app.post('/api/auth/logout', (_req, res) => {
   ok(res, { success: true });
 });
 
-// FORGOT PASSWORD — generates a reset token (returned in response for local dev)
+// FORGOT PASSWORD — emails a reset link (SMTP required); never returns the token in the JSON body
 app.post('/api/auth/forgot-password', async (req, res) => {
   const { email } = req.body;
   if (!email) return badRequest(res, 'Email is required');
+
+  const genericMessage = {
+    message: 'If an account exists for this email, you will receive a reset link shortly.',
+  };
 
   try {
     const { rows } = await pool.query(
@@ -202,13 +206,19 @@ app.post('/api/auth/forgot-password', async (req, res) => {
       [email.toLowerCase()]
     );
 
-    // Don't reveal whether the email exists
     if (!rows.length) {
-      return ok(res, { message: 'If that email exists, a reset link has been sent.' });
+      return ok(res, genericMessage);
     }
 
-    const token      = crypto.randomBytes(32).toString('hex');
-    const expiresAt  = new Date(Date.now() + RESET_TOKEN_EXPIRY_MINUTES * 60 * 1000);
+    if (!isSmtpConfigured()) {
+      console.error('[forgot-password] SMTP is not configured');
+      return res.status(503).json({
+        error: 'Password reset email is not configured on the server. Contact an administrator.',
+      });
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + RESET_TOKEN_EXPIRY_MINUTES * 60 * 1000);
 
     await pool.query(
       `INSERT INTO password_reset_tokens (user_email, token, expires_at)
@@ -216,16 +226,20 @@ app.post('/api/auth/forgot-password', async (req, res) => {
       [email.toLowerCase(), token, expiresAt]
     );
 
-    // In production this token would be emailed; in local dev we return it directly
-    ok(res, {
-      message: 'Reset link generated.',
-      reset_token: token,
-      reset_url: `http://localhost:5173/ResetPassword?token=${token}`,
-      expires_in: `${RESET_TOKEN_EXPIRY_MINUTES} minutes`,
-    });
+    const resetUrl = `${APP_PUBLIC_URL}/ResetPassword?token=${encodeURIComponent(token)}`;
+    const mailResult = await sendPasswordResetEmail({ to: email.toLowerCase(), resetUrl });
+
+    if (!mailResult.sent) {
+      await pool.query('DELETE FROM password_reset_tokens WHERE token = $1', [token]);
+      return res.status(500).json({
+        error: mailResult.error || 'Could not send reset email. Please try again later.',
+      });
+    }
+
+    ok(res, genericMessage);
   } catch (err) {
     console.error('[forgot-password]', err.message);
-    res.status(500).json({ error: 'Could not generate reset token' });
+    res.status(500).json({ error: 'Could not process password reset request' });
   }
 });
 
