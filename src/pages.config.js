@@ -50,6 +50,7 @@
 import Dashboard from './pages/Dashboard';
 import Journey from './pages/Journey';
 import DayDetail from './pages/DayDetail';
+import Account from './pages/Account';
 import Admin from './pages/Admin';
 import __Layout from './Layout.jsx';
 
@@ -57,6 +58,7 @@ export const PAGES = {
     "Dashboard":      Dashboard,
     "Journey":        Journey,
     "DayDetail":      DayDetail,
+    "Account":        Account,
     "Admin":          Admin,
 }
 

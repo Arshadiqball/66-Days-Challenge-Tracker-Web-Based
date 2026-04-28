@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { entities } from '@/api/entities';
 import { Plus, Trash2, Edit3, Save, X, ChevronDown, ChevronUp } from 'lucide-react';
@@ -46,6 +46,8 @@ export default function Admin() {
   const [userError, setUserError] = useState('');
   const [userSuccess, setUserSuccess] = useState('');
   const [fieldError, setFieldError] = useState('');
+  const [fieldSaving, setFieldSaving] = useState(false);
+  const fieldEditorRef = useRef(null);
 
   const loadUsers = async () => {
     setLoadingUsers(true);
@@ -85,15 +87,18 @@ export default function Admin() {
 
   const saveDay = async () => {
     setSaving(true);
-    if (editingDay.id) {
-      const updated = await entities.DayContent.update(editingDay.id, editingDay);
-      setDays(prev => prev.map(d => d.id === updated.id ? updated : d));
-    } else {
-      const created = await entities.DayContent.create(editingDay);
-      setDays(prev => [...prev, created].sort((a, b) => a.day_number - b.day_number));
+    try {
+      if (editingDay.id) {
+        const updated = await entities.DayContent.update(editingDay.id, editingDay);
+        setDays(prev => prev.map(d => d.id === updated.id ? updated : d));
+      } else {
+        const created = await entities.DayContent.create(editingDay);
+        setDays(prev => [...prev, created].sort((a, b) => a.day_number - b.day_number));
+      }
+      setEditingDay(null);
+    } finally {
+      setSaving(false);
     }
-    setEditingDay(null);
-    setSaving(false);
   };
 
   const deleteDay = async (id) => {
@@ -101,17 +106,40 @@ export default function Admin() {
     setDays(prev => prev.filter(d => d.id !== id));
   };
 
+  const buildCustomFieldPayload = (ed) => {
+    const display_in = ed.display_in === 'today_habit' ? 'today_habit' : 'my_entry';
+    const base = {
+      field_label: String(ed.field_label ?? '').trim(),
+      display_in,
+      is_active: ed.is_active !== false,
+      sort_order: Math.max(0, Math.min(99999, Number(ed.sort_order) || 0)),
+    };
+    if (display_in === 'today_habit') {
+      return {
+        ...base,
+        field_type: 'textarea',
+        field_options: '',
+        description: String(ed.description ?? '').trim(),
+      };
+    }
+    const ft = ['text', 'textarea', 'select', 'checkbox'].includes(ed.field_type) ? ed.field_type : 'textarea';
+    return {
+      ...base,
+      field_type: ft,
+      field_options: String(ed.field_options ?? ''),
+      description: '',
+    };
+  };
+
   const saveField = async () => {
-    setSaving(true);
+    setFieldSaving(true);
     setFieldError('');
 
-    const payload = { ...editingField };
-
-    if (payload.display_in === 'today_habit') {
-      payload.field_type = 'textarea';
-      payload.field_options = '';
-    } else {
-      payload.description = '';
+    const payload = buildCustomFieldPayload(editingField);
+    if (!payload.field_label) {
+      setFieldError('Label is required.');
+      setFieldSaving(false);
+      return;
     }
 
     try {
@@ -131,9 +159,15 @@ export default function Admin() {
         setFieldError(message);
       }
     } finally {
-      setSaving(false);
+      setFieldSaving(false);
     }
   };
+
+  useEffect(() => {
+    if (editingField && activeTab === 'fields') {
+      fieldEditorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [editingField, activeTab]);
 
   const deleteField = async (id) => {
     await entities.CustomField.delete(id);
@@ -403,7 +437,7 @@ export default function Admin() {
           </button>
 
           {editingField && (
-            <div className="glass-card rounded-2xl p-6 border-gold border animate-fade-in-up">
+            <div ref={fieldEditorRef} className="glass-card rounded-2xl p-6 border-gold border animate-fade-in-up">
               <h3 className="font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
                 {editingField.id ? 'Edit' : 'New'} Custom Field
               </h3>
@@ -478,18 +512,21 @@ export default function Admin() {
 
                 <div>
                   <label className="block text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Sort Order</label>
-                  <input type="number" value={editingField.sort_order || 0}
-                    onChange={e => setEditingField(p => ({ ...p, sort_order: parseInt(e.target.value) }))}
+                  <input type="number" value={editingField.sort_order ?? 0}
+                    onChange={e => setEditingField(p => ({
+                      ...p,
+                      sort_order: e.target.value === '' ? 0 : Number(e.target.value),
+                    }))}
                     className="w-full px-3 py-2 rounded-lg border text-sm outline-none"
                     style={{ background: 'rgba(255,255,255,0.05)', borderColor: 'rgba(201,168,76,0.2)', color: 'var(--text-primary)' }}
                   />
                 </div>
               </div>
               <div className="flex gap-3 mt-5">
-                <button onClick={saveField} disabled={saving}
+                <button onClick={saveField} disabled={fieldSaving}
                   className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold"
-                  style={{ background: 'linear-gradient(135deg, #C9A84C, #A8882A)', color: '#1A1A2E' }}>
-                  <Save size={14} /> {saving ? 'Saving...' : 'Save'}
+                  style={{ background: 'linear-gradient(135deg, #C9A84C, #A8882A)', color: '#1A1A2E', opacity: fieldSaving ? 0.7 : 1 }}>
+                  <Save size={14} /> {fieldSaving ? 'Saving...' : 'Save'}
                 </button>
                 <button onClick={() => { setFieldError(''); setEditingField(null); }}
                   className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm border hover:bg-white/5"

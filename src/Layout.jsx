@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { LayoutDashboard, CalendarDays, Settings, Trophy, LogOut, Menu, X } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Settings, Trophy, LogOut, Menu, X, UserCircle } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 
 const baseNavItems = [
   { name: 'Dashboard', page: 'Dashboard', icon: LayoutDashboard },
   { name: '66 Day',    page: 'Journey',   icon: CalendarDays },
+  { name: 'Account',   page: 'Account',   icon: UserCircle },
 ];
 
 const adminNavItems = [

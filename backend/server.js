@@ -340,6 +340,27 @@ app.post('/api/auth/change-password', requireAuth, async (req, res) => {
   }
 });
 
+// UPDATE PROFILE — authenticated user may change display name (stored as full_name)
+app.post('/api/auth/update-profile', requireAuth, async (req, res) => {
+  const { full_name } = req.body;
+  const name = typeof full_name === 'string' ? full_name.trim() : '';
+  if (!name) return badRequest(res, 'Username is required');
+  if (name.length > 120) return badRequest(res, 'Username is too long');
+
+  try {
+    const { rows } = await pool.query(
+      `UPDATE users SET full_name = $1 WHERE id = $2
+       RETURNING id, email, full_name, role, created_at, must_change_password`,
+      [name, req.authUser.id]
+    );
+    if (!rows.length) return notFound(res, 'User not found');
+    ok(res, { user: rows[0] });
+  } catch (err) {
+    console.error('[update-profile]', err.message);
+    res.status(500).json({ error: 'Could not update profile' });
+  }
+});
+
 // Tables whose records are always scoped to the authenticated user
 const USER_SCOPED_TABLES = new Set(['habit_logs']);
 const ADMIN_ONLY_TABLES = new Set(['users']);
@@ -442,6 +463,13 @@ app.put('/api/apps/:appId/entities/:entity/:id', requireAuth, async (req, res) =
     fields.user_email = req.authUser.email;
   }
 
+  // Habit logs are immutable for participants after the first save (only admins may edit)
+  if (table === 'habit_logs' && req.authUser.role !== 'admin') {
+    return res.status(403).json({
+      error: 'This entry cannot be changed after it is saved. Contact an administrator if you need a correction.',
+    });
+  }
+
   if (!Object.keys(fields).length) return badRequest(res, 'No updatable fields');
 
   const sets = Object.keys(fields).map((k, i) => `${k} = $${i + 1}`);
@@ -476,6 +504,12 @@ app.delete('/api/apps/:appId/entities/:entity/:id', requireAuth, async (req, res
   }
 
   try {
+    if (table === 'habit_logs' && req.authUser.role !== 'admin') {
+      return res.status(403).json({
+        error: 'Entries cannot be removed after they are saved. Contact an administrator if you need a correction.',
+      });
+    }
+
     // For user-scoped tables, only allow deleting own records
     const ownershipClause = USER_SCOPED_TABLES.has(table)
       ? `AND user_email = '${req.authUser.email}'`

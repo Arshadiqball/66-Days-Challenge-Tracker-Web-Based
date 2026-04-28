@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import DayContentCard from '../components/day/DayContentCard';
 import HabitLogForm from '../components/day/HabitLogForm';
+import { shouldShowMyEntryCustomField } from '@/lib/myEntryFieldFilter';
 
 export default function DayDetail() {
   const { user } = useAuth();
@@ -117,7 +118,12 @@ export default function DayDetail() {
             )}
             {/* Show custom field values from saved log */}
             {existingLog.custom_data && customFields
-              .filter(cf => existingLog.custom_data[cf.id] && cf.display_in === 'my_entry')
+              .filter(
+                cf =>
+                  shouldShowMyEntryCustomField(cf) &&
+                  existingLog.custom_data[cf.id] &&
+                  cf.display_in === 'my_entry'
+              )
               .slice(0, 3)
               .map(cf => {
                 const val = existingLog.custom_data[cf.id];

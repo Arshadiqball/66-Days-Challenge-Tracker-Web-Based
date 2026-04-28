@@ -79,6 +79,18 @@ export const AuthProvider = ({ children }) => {
     return u;
   }, []);
 
+  const updateProfile = useCallback(async ({ full_name }) => {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) throw new Error('Authentication required');
+    const { user: u } = await apiPost(
+      `${API_BASE}/update-profile`,
+      { full_name },
+      { token }
+    );
+    setUser(u);
+    return u;
+  }, []);
+
   // ── Logout ─────────────────────────────────────────────────────────────────
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
@@ -108,6 +120,7 @@ export const AuthProvider = ({ children }) => {
       forgotPassword,
       resetPassword,
       changePassword,
+      updateProfile,
     }}>
       {children}
     </AuthContext.Provider>
