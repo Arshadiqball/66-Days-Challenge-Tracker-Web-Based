@@ -12,6 +12,9 @@ const emptyContent = {
   quote_author: '',
   why_this_habit: '',
   action_plan: '',
+  short_challenge: '',
+  deep_dive: '',
+  self_reflection: '',
   affirmation: '',
   category: 'Morning',
 };
@@ -122,11 +125,11 @@ export default function Admin() {
         description: String(ed.description ?? '').trim(),
       };
     }
-    const ft = ['text', 'textarea', 'select', 'checkbox'].includes(ed.field_type) ? ed.field_type : 'textarea';
+    const ft = ['text', 'textarea', 'select', 'checkbox', 'title'].includes(ed.field_type) ? ed.field_type : 'textarea';
     return {
       ...base,
       field_type: ft,
-      field_options: String(ed.field_options ?? ''),
+      field_options: ft === 'select' ? String(ed.field_options ?? '') : '',
       description: '',
     };
   };
@@ -351,6 +354,9 @@ export default function Admin() {
                 { key: 'quote_of_day', label: 'Quote of the Day' },
                 { key: 'why_this_habit', label: 'Why This Habit Matters' },
                 { key: 'action_plan', label: "Today's Action Plan" },
+                { key: 'short_challenge', label: "Today's Short Challenge" },
+                { key: 'deep_dive', label: "Today's Deep Dive" },
+                { key: 'self_reflection', label: "Today's Self-Reflection" },
                 { key: 'affirmation', label: "Today's Affirmation" },
               ].map(f => (
                 <div key={f.key} className="mt-4">
@@ -413,6 +419,9 @@ export default function Admin() {
                     {day.quote_of_day && <p className="text-xs italic mt-3" style={{ color: 'var(--text-secondary)' }}>"{day.quote_of_day}"</p>}
                     {day.why_this_habit && <p className="text-xs" style={{ color: 'var(--text-muted)' }}><strong style={{ color: 'var(--text-secondary)' }}>Why:</strong> {day.why_this_habit}</p>}
                     {day.action_plan && <p className="text-xs" style={{ color: 'var(--text-muted)' }}><strong style={{ color: 'var(--text-secondary)' }}>Action:</strong> {day.action_plan}</p>}
+                    {day.short_challenge && <p className="text-xs" style={{ color: 'var(--text-muted)' }}><strong style={{ color: 'var(--text-secondary)' }}>Challenge:</strong> {day.short_challenge}</p>}
+                    {day.deep_dive && <p className="text-xs" style={{ color: 'var(--text-muted)' }}><strong style={{ color: 'var(--text-secondary)' }}>Deep Dive:</strong> {day.deep_dive}</p>}
+                    {day.self_reflection && <p className="text-xs" style={{ color: 'var(--text-muted)' }}><strong style={{ color: 'var(--text-secondary)' }}>Reflection:</strong> {day.self_reflection}</p>}
                   </div>
                 )}
               </div>
@@ -479,6 +488,7 @@ export default function Admin() {
                       <option value="textarea">Long Text</option>
                       <option value="select">Dropdown</option>
                       <option value="checkbox">Checkbox</option>
+                      <option value="title">Title Only</option>
                     </select>
                   </div>
                 )}

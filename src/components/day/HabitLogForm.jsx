@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, Circle, Trophy } from 'lucide-react';
 import { entities } from '@/api/entities';
-import { shouldShowMyEntryCustomField } from '@/lib/myEntryFieldFilter';
+import { normalizeMyEntryFieldLabel, shouldShowMyEntryCustomField } from '@/lib/myEntryFieldFilter';
 
 const MoodButton = ({ mood, label, emoji, selected, onClick, readOnly }) => {
   const cls = `flex flex-col items-center gap-1 px-4 py-3 rounded-xl border text-sm font-medium ${
@@ -93,6 +93,13 @@ function CustomFieldInput({ field, value, onChange, readOnly }) {
   );
 }
 
+function isTitleOnlyField(field) {
+  if (!field) return false;
+  if (field.field_type === 'title') return true;
+  // Backward compatibility: existing "My Daily Journal" custom fields should display as heading-only.
+  return normalizeMyEntryFieldLabel(field.field_label) === 'my daily journal';
+}
+
 export default function HabitLogForm({ dayContent, existingLog, userEmail, onSave }) {
   const isDay1 = dayContent?.day_number === 1;
   const locked = Boolean(existingLog?.id);
@@ -109,6 +116,8 @@ export default function HabitLogForm({ dayContent, existingLog, userEmail, onSav
   const [customFields, setCustomFields] = useState([]);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const titleFields = customFields.filter(isTitleOnlyField);
+  const inputFields = customFields.filter(cf => !isTitleOnlyField(cf));
 
   useEffect(() => {
     entities.CustomField.filter({ is_active: true, display_in: 'my_entry' })
@@ -161,7 +170,7 @@ export default function HabitLogForm({ dayContent, existingLog, userEmail, onSav
     if (locked) return;
     setSaving(true);
     const trophy = form.completed && form.habit_stacked === 'yes';
-    const allowedIds = new Set(customFields.map(cf => cf.id));
+    const allowedIds = new Set(inputFields.map(cf => cf.id));
     const custom_data = {};
     for (const id of allowedIds) {
       if (Object.prototype.hasOwnProperty.call(customData, id)) {
@@ -195,6 +204,15 @@ export default function HabitLogForm({ dayContent, existingLog, userEmail, onSav
           This day&apos;s entry is <strong style={{ color: '#E8C96A' }}>submitted and locked</strong>. It cannot be edited.
         </div>
       )}
+
+      {/* Title-only custom fields shown at top */}
+      {titleFields.map(cf => (
+        <div key={cf.id} className="glass-card rounded-2xl p-5 border border-gold">
+          <p className="text-xs uppercase tracking-widest font-semibold" style={{ color: 'var(--text-muted)' }}>
+            {cf.field_label}
+          </p>
+        </div>
+      ))}
 
       {/* Completion Toggle */}
       <div className="glass-card rounded-2xl p-5 border border-gold">
@@ -280,7 +298,7 @@ export default function HabitLogForm({ dayContent, existingLog, userEmail, onSav
       </div>
 
       {/* Custom Fields (display_in = my_entry) */}
-      {customFields.map(cf => (
+      {inputFields.map(cf => (
         <div key={cf.id} className="glass-card rounded-2xl p-5 border border-gold">
           {cf.field_type !== 'checkbox' && (
             <p className="text-xs uppercase tracking-widest font-semibold mb-3" style={{ color: 'var(--text-muted)' }}>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Quote, Lightbulb, Target, Sparkles, ChevronDown, ChevronUp, LayoutList } from 'lucide-react';
+import { Quote, Lightbulb, Target, Sparkles, ChevronDown, ChevronUp, LayoutList, Flag, BookOpen, PenLine } from 'lucide-react';
 import { entities } from '@/api/entities';
 
 const Section = ({ icon: Icon, title, content, accent = false }) => {
@@ -64,6 +64,9 @@ export default function DayContentCard({ dayContent }) {
 
       <Section icon={Lightbulb} title="Why This Habit Matters" content={dayContent.why_this_habit} />
       <Section icon={Target} title="Today's Action Plan" content={dayContent.action_plan} accent />
+      <Section icon={Flag} title="Today's Short Challenge" content={dayContent.short_challenge} />
+      <Section icon={BookOpen} title="Today's Deep Dive" content={dayContent.deep_dive} />
+      <Section icon={PenLine} title="Today's Self-Reflection" content={dayContent.self_reflection} />
       <Section icon={Sparkles} title="Today's Affirmation" content={dayContent.affirmation} />
 
       {/* Custom fields for Today's Habit */}

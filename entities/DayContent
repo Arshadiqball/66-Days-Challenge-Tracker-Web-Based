@@ -35,6 +35,18 @@
       "type": "string",
       "description": "Today's action plan description"
     },
+    "short_challenge": {
+      "type": "string",
+      "description": "Today's short challenge"
+    },
+    "deep_dive": {
+      "type": "string",
+      "description": "Today's deep dive prompt"
+    },
+    "self_reflection": {
+      "type": "string",
+      "description": "Today's self-reflection question"
+    },
     "affirmation": {
       "type": "string",
       "description": "Today's affirmation (optional)"

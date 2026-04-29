@@ -12,7 +12,8 @@
         "text",
         "textarea",
         "select",
-        "checkbox"
+        "checkbox",
+        "title"
       ],
       "default": "textarea"
     },

@@ -65,6 +65,9 @@ export async function initDb() {
         quote_author     TEXT NOT NULL DEFAULT '',
         why_this_habit   TEXT NOT NULL DEFAULT '',
         action_plan      TEXT NOT NULL DEFAULT '',
+        short_challenge  TEXT NOT NULL DEFAULT '',
+        deep_dive        TEXT NOT NULL DEFAULT '',
+        self_reflection  TEXT NOT NULL DEFAULT '',
         affirmation      TEXT NOT NULL DEFAULT '',
         category         TEXT NOT NULL DEFAULT 'Morning',
         created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -96,6 +99,17 @@ export async function initDb() {
 
     await client.query(`
       ALTER TABLE custom_fields ADD COLUMN IF NOT EXISTS description TEXT NOT NULL DEFAULT '';
+    `);
+
+    // Add extra day content sections for existing databases
+    await client.query(`
+      ALTER TABLE day_contents ADD COLUMN IF NOT EXISTS short_challenge TEXT NOT NULL DEFAULT '';
+    `);
+    await client.query(`
+      ALTER TABLE day_contents ADD COLUMN IF NOT EXISTS deep_dive TEXT NOT NULL DEFAULT '';
+    `);
+    await client.query(`
+      ALTER TABLE day_contents ADD COLUMN IF NOT EXISTS self_reflection TEXT NOT NULL DEFAULT '';
     `);
 
     // Store custom field answers as JSON on habit_logs
