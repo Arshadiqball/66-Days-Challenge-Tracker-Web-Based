@@ -8,6 +8,28 @@ import DayContentCard from '../components/day/DayContentCard';
 import HabitLogForm from '../components/day/HabitLogForm';
 import { shouldShowMyEntryCustomField } from '@/lib/myEntryFieldFilter';
 
+const ADMIN_CONTENT_FALLBACK_KEYS = [
+  'why_this_habit',
+  'action_plan',
+  'short_challenge',
+  'deep_dive',
+  'self_reflection',
+  'affirmation',
+];
+
+function withAdminFieldFallback(dayContent, dayOneTemplate) {
+  if (!dayContent || !dayOneTemplate) return dayContent;
+  const merged = { ...dayContent };
+  for (const key of ADMIN_CONTENT_FALLBACK_KEYS) {
+    const currentVal = String(merged[key] ?? '').trim();
+    const templateVal = String(dayOneTemplate[key] ?? '').trim();
+    if (!currentVal && templateVal) {
+      merged[key] = dayOneTemplate[key];
+    }
+  }
+  return merged;
+}
+
 export default function DayDetail() {
   const { user } = useAuth();
   const urlParams = new URLSearchParams(window.location.search);
@@ -29,18 +51,23 @@ export default function DayDetail() {
 
   const load = async () => {
     setLoading(true);
-    const [contents, logs] = await Promise.all([
+    const [contents, dayOneContents, logs] = await Promise.all([
       entities.DayContent.filter({ day_number: dayNum }),
+      entities.DayContent.filter({ day_number: 1 }),
       user
         ? entities.HabitLog.filter({ user_email: user.email, day_number: dayNum })
         : Promise.resolve([]),
     ]);
 
-    setDayContent(contents[0] || {
+    const matchedContent = contents.find(content => Boolean(content?.is_bonus) === isBonus) || contents[0] || null;
+    const dayOneTemplate = dayOneContents.find(content => !content?.is_bonus) || dayOneContents[0] || null;
+    const baseContent = matchedContent || {
       day_number: dayNum,
       is_bonus: isBonus,
       habit_title: isBonus ? `Bonus Day ${dayNum - 66}` : `Day ${dayNum}`,
-    });
+    };
+
+    setDayContent(withAdminFieldFallback(baseContent, dayOneTemplate));
     setExistingLog(logs[0] || null);
     setLoading(false);
   };

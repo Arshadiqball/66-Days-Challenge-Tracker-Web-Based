@@ -2,6 +2,8 @@
 const HIDDEN_MY_ENTRY_LABELS = new Set([
   "today's action item",
   "today's short challenge",
+  "how did i feel before completing today's challenge?",
+  "how did i feel after completing today's challenge?",
 ]);
 
 export function normalizeMyEntryFieldLabel(label) {
