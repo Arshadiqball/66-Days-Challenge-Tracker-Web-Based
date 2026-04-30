@@ -16,7 +16,7 @@ const FIXED_ENTRY_FIELD_ORDER = [
   'My Mini-Action for Today',
   'My Win of the Day',
   'Self-Reflection',
-  'How I Honored the New Me Today',
+  'How I Honored',
   'Other Lessons Learned',
   "Instead of Today's Assigned Habit, I Feel More Aligned",
   'Why This Habit is Important to Me',
@@ -28,6 +28,15 @@ const FIXED_ENTRY_FIELD_ORDER_NORMALIZED = FIXED_ENTRY_FIELD_ORDER.map(label =>
   normalizeForFixedOrder(label)
 );
 
+function matchesFixedKey(norm, key) {
+  if (!norm || !key) return false;
+  if (norm === key) return true;
+  if (norm.startsWith(key + ' ')) return true;
+  if (norm.endsWith(' ' + key)) return true;
+  if (norm.includes(' ' + key + ' ')) return true;
+  return false;
+}
+
 function getFixedOrderRank(fieldLabel) {
   const norm = normalizeForFixedOrder(fieldLabel);
   if (!norm) return Number.MAX_SAFE_INTEGER;
@@ -36,7 +45,7 @@ function getFixedOrderRank(fieldLabel) {
   for (let i = 0; i < FIXED_ENTRY_FIELD_ORDER_NORMALIZED.length; i++) {
     const key = FIXED_ENTRY_FIELD_ORDER_NORMALIZED[i];
     if (!key) continue;
-    if (norm === key || norm.startsWith(key + ' ')) {
+    if (matchesFixedKey(norm, key)) {
       if (key.length > bestLen) {
         bestLen = key.length;
         bestIdx = i;
