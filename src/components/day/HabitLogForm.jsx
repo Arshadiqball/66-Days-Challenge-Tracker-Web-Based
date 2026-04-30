@@ -13,40 +13,49 @@ function normalizeForFixedOrder(label) {
 
 const FIXED_ENTRY_FIELD_ORDER = [
   "Today's Intention",
-  'My mini-action for today',
-  'My win of the day',
+  'My Mini-Action for Today',
+  'My Win of the Day',
   'Self-Reflection',
-  'How I honored the New me today',
-  'Other lessons learned',
-  'Instead of Today\u2019s Assigned Habit, I feel more aligned',
-  'Why is this habit important to me',
-  "Today's action plan to work on this habit. When Will I do it?",
+  'How I Honored the New Me Today',
+  'Other Lessons Learned',
+  "Instead of Today's Assigned Habit, I Feel More Aligned",
+  'Why This Habit is Important to Me',
+  "Today's Action Plan to Work on This Habit",
   'Notes',
 ];
 
-const FIXED_ENTRY_FIELD_ORDER_INDEX = new Map(
-  FIXED_ENTRY_FIELD_ORDER.map((label, index) => [normalizeForFixedOrder(label), index])
+const FIXED_ENTRY_FIELD_ORDER_NORMALIZED = FIXED_ENTRY_FIELD_ORDER.map(label =>
+  normalizeForFixedOrder(label)
 );
+
+function getFixedOrderRank(fieldLabel) {
+  const norm = normalizeForFixedOrder(fieldLabel);
+  if (!norm) return Number.MAX_SAFE_INTEGER;
+  let bestIdx = -1;
+  let bestLen = -1;
+  for (let i = 0; i < FIXED_ENTRY_FIELD_ORDER_NORMALIZED.length; i++) {
+    const key = FIXED_ENTRY_FIELD_ORDER_NORMALIZED[i];
+    if (!key) continue;
+    if (norm === key || norm.startsWith(key + ' ')) {
+      if (key.length > bestLen) {
+        bestLen = key.length;
+        bestIdx = i;
+      }
+    }
+  }
+  return bestIdx === -1 ? Number.MAX_SAFE_INTEGER : bestIdx;
+}
 
 function sortInputFields(fields) {
   return [...fields].sort((a, b) => {
-    const aNorm = normalizeForFixedOrder(a.field_label);
-    const bNorm = normalizeForFixedOrder(b.field_label);
-    const aIdx = FIXED_ENTRY_FIELD_ORDER_INDEX.get(aNorm);
-    const bIdx = FIXED_ENTRY_FIELD_ORDER_INDEX.get(bNorm);
-    const aRank = aIdx ?? Number.MAX_SAFE_INTEGER;
-    const bRank = bIdx ?? Number.MAX_SAFE_INTEGER;
+    const aRank = getFixedOrderRank(a.field_label);
+    const bRank = getFixedOrderRank(b.field_label);
     if (aRank !== bRank) return aRank - bRank;
     const aSort = a.sort_order ?? 0;
     const bSort = b.sort_order ?? 0;
     if (aSort !== bSort) return aSort - bSort;
     return String(a.field_label || '').localeCompare(String(b.field_label || ''));
   });
-}
-
-function getFixedOrderRank(fieldLabel) {
-  const idx = FIXED_ENTRY_FIELD_ORDER_INDEX.get(normalizeForFixedOrder(fieldLabel));
-  return idx ?? Number.MAX_SAFE_INTEGER;
 }
 
 const MoodButton = ({ mood, label, emoji, selected, onClick, readOnly }) => {
