@@ -140,13 +140,15 @@ function CustomFieldInput({ field, value, onChange, readOnly }) {
 }
 
 function isMyDailyJournalLabel(label) {
-  return normalizeForFixedOrder(label) === 'my daily journal';
+  const norm = normalizeForFixedOrder(label);
+  return norm === 'my daily journal' || norm.startsWith('my daily journal ');
 }
 
 function isTitleOnlyField(field) {
   if (!field) return false;
   if (field.field_type === 'title') return true;
-  // Backward compatibility: existing "My Daily Journal" custom fields should display as heading-only.
+  // Backward compatibility: any custom field whose label starts with "My Daily Journal"
+  // is treated as the journal heading (no text input is rendered).
   return isMyDailyJournalLabel(field.field_label);
 }
 
@@ -260,16 +262,20 @@ export default function HabitLogForm({ dayContent, existingLog, userEmail, onSav
   return (
     <div className="space-y-6 animate-fade-in-up">
       {/* Title-only custom fields shown at top */}
-      {titleFields.map(cf => (
-        <React.Fragment key={cf.id}>
-          <div className="glass-card rounded-2xl p-5 border border-gold">
-            <p className="text-xs uppercase tracking-widest font-semibold" style={{ color: 'var(--text-muted)' }}>
-              {cf.field_label}
-            </p>
-          </div>
-          {isMyDailyJournalLabel(cf.field_label) && journalSaveWarning}
-        </React.Fragment>
-      ))}
+      {titleFields.map(cf => {
+        const isJournal = isMyDailyJournalLabel(cf.field_label);
+        const headingLabel = isJournal ? 'My Daily Journal' : cf.field_label;
+        return (
+          <React.Fragment key={cf.id}>
+            <div className="glass-card rounded-2xl p-5 border border-gold">
+              <p className="text-xs uppercase tracking-widest font-semibold" style={{ color: 'var(--text-muted)' }}>
+                {headingLabel}
+              </p>
+            </div>
+            {isJournal && journalSaveWarning}
+          </React.Fragment>
+        );
+      })}
       {!hasJournalTitle && journalSaveWarning}
 
       {/* Completion Toggle */}
