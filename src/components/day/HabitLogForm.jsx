@@ -3,23 +3,6 @@ import { CheckCircle, Circle, Trophy } from 'lucide-react';
 import { entities } from '@/api/entities';
 import { normalizeMyEntryFieldLabel, shouldShowMyEntryCustomField } from '@/lib/myEntryFieldFilter';
 
-const FIXED_ENTRY_FIELD_ORDER = [
-  "today's intention",
-  'my mini-action for today',
-  'my win of the day',
-  "self reflection",
-  'how i honored the new me today',
-  'other lessons learned',
-  'instead of todays assigned habit i feel more aligned',
-  'why is this habit important to me',
-  'todays action plan to work on this habit when will i do it',
-  'notes',
-];
-
-const FIXED_ENTRY_FIELD_ORDER_INDEX = new Map(
-  FIXED_ENTRY_FIELD_ORDER.map((label, index) => [label, index])
-);
-
 function normalizeForFixedOrder(label) {
   return String(label || '')
     .toLowerCase()
@@ -27,6 +10,23 @@ function normalizeForFixedOrder(label) {
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
 }
+
+const FIXED_ENTRY_FIELD_ORDER = [
+  "Today's Intention",
+  'My mini-action for today',
+  'My win of the day',
+  'Self-Reflection',
+  'How I honored the New me today',
+  'Other lessons learned',
+  'Instead of Today\u2019s Assigned Habit, I feel more aligned',
+  'Why is this habit important to me',
+  "Today's action plan to work on this habit. When Will I do it?",
+  'Notes',
+];
+
+const FIXED_ENTRY_FIELD_ORDER_INDEX = new Map(
+  FIXED_ENTRY_FIELD_ORDER.map((label, index) => [normalizeForFixedOrder(label), index])
+);
 
 function sortInputFields(fields) {
   return [...fields].sort((a, b) => {
@@ -139,11 +139,15 @@ function CustomFieldInput({ field, value, onChange, readOnly }) {
   );
 }
 
+function isMyDailyJournalLabel(label) {
+  return normalizeForFixedOrder(label) === 'my daily journal';
+}
+
 function isTitleOnlyField(field) {
   if (!field) return false;
   if (field.field_type === 'title') return true;
   // Backward compatibility: existing "My Daily Journal" custom fields should display as heading-only.
-  return normalizeMyEntryFieldLabel(field.field_label) === 'my daily journal';
+  return isMyDailyJournalLabel(field.field_label);
 }
 
 export default function HabitLogForm({ dayContent, existingLog, userEmail, onSave }) {
@@ -154,6 +158,7 @@ export default function HabitLogForm({ dayContent, existingLog, userEmail, onSav
     habit_stacked: existingLog?.habit_stacked ?? (isDay1 ? 'na' : 'no'),
     feeling_before: existingLog?.feeling_before ?? '',
     feeling_after: existingLog?.feeling_after ?? '',
+    mood_before: existingLog?.mood_before ?? '',
     mood: existingLog?.mood ?? '',
     notes: existingLog?.notes ?? '',
   });
@@ -165,9 +170,6 @@ export default function HabitLogForm({ dayContent, existingLog, userEmail, onSav
   const inputFields = sortInputFields(customFields.filter(cf => !isTitleOnlyField(cf)));
   const beforeFeelingCustomFields = inputFields.filter(cf => getFixedOrderRank(cf.field_label) <= 2);
   const afterFeelingCustomFields = inputFields.filter(cf => getFixedOrderRank(cf.field_label) > 2);
-  const hasMyDailyJournalHeading = titleFields.some(
-    cf => normalizeMyEntryFieldLabel(cf.field_label) === 'my daily journal'
-  );
 
   useEffect(() => {
     entities.CustomField.filter({ is_active: true, display_in: 'my_entry' })
@@ -187,6 +189,7 @@ export default function HabitLogForm({ dayContent, existingLog, userEmail, onSav
         habit_stacked: isDay1 ? 'na' : 'no',
         feeling_before: '',
         feeling_after: '',
+        mood_before: '',
         mood: '',
         notes: '',
       });
@@ -198,6 +201,7 @@ export default function HabitLogForm({ dayContent, existingLog, userEmail, onSav
       habit_stacked: existingLog.habit_stacked ?? (isDay1 ? 'na' : 'no'),
       feeling_before: existingLog.feeling_before ?? '',
       feeling_after: existingLog.feeling_after ?? '',
+      mood_before: existingLog.mood_before ?? '',
       mood: existingLog.mood ?? '',
       notes: existingLog.notes ?? '',
     });
@@ -243,24 +247,30 @@ export default function HabitLogForm({ dayContent, existingLog, userEmail, onSav
     onSave && onSave();
   };
 
+  const journalSaveWarning = (
+    <div
+      className="rounded-2xl px-4 py-3 text-sm font-semibold border"
+      style={{ background: 'rgba(248,113,113,0.12)', borderColor: 'rgba(248,113,113,0.45)', color: '#f87171' }}
+    >
+      Please be sure and click &quot;Save&quot; at the bottom of the page before leaving.
+    </div>
+  );
+  const hasJournalTitle = titleFields.some(cf => isMyDailyJournalLabel(cf.field_label));
+
   return (
     <div className="space-y-6 animate-fade-in-up">
       {/* Title-only custom fields shown at top */}
       {titleFields.map(cf => (
-        <div key={cf.id} className="glass-card rounded-2xl p-5 border border-gold">
-          <p className="text-xs uppercase tracking-widest font-semibold" style={{ color: 'var(--text-muted)' }}>
-            {cf.field_label}
-          </p>
-        </div>
+        <React.Fragment key={cf.id}>
+          <div className="glass-card rounded-2xl p-5 border border-gold">
+            <p className="text-xs uppercase tracking-widest font-semibold" style={{ color: 'var(--text-muted)' }}>
+              {cf.field_label}
+            </p>
+          </div>
+          {isMyDailyJournalLabel(cf.field_label) && journalSaveWarning}
+        </React.Fragment>
       ))}
-      {hasMyDailyJournalHeading && (
-        <div
-          className="rounded-2xl px-4 py-3 text-sm font-semibold border"
-          style={{ background: 'rgba(248,113,113,0.12)', borderColor: 'rgba(248,113,113,0.45)', color: '#f87171' }}
-        >
-          Please be sure and click &quot;Save&quot; at the bottom of the page before leaving.
-        </div>
-      )}
+      {!hasJournalTitle && journalSaveWarning}
 
       {/* Completion Toggle */}
       <div className="glass-card rounded-2xl p-5 border border-gold">
@@ -326,7 +336,7 @@ export default function HabitLogForm({ dayContent, existingLog, userEmail, onSav
         </div>
       ))}
 
-      {/* Feeling Before */}
+      {/* Feeling Before + Mood */}
       <div className="glass-card rounded-2xl p-5 border border-gold">
         <p className="text-xs uppercase tracking-widest font-semibold mb-3" style={{ color: 'var(--text-muted)' }}>
           How Did I Feel Before Completing Today&apos;s Challenge
@@ -336,9 +346,15 @@ export default function HabitLogForm({ dayContent, existingLog, userEmail, onSav
           onChange={e => handleChange('feeling_before', e.target.value)}
           placeholder="How did you feel before completing today's challenge?"
           rows={3}
-          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm resize-none outline-none focus:border-yellow-500/50 transition-colors"
+          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm resize-none outline-none focus:border-yellow-500/50 transition-colors mb-4"
           style={{ color: 'var(--text-primary)', caretColor: '#C9A84C' }}
         />
+        <p className="text-xs uppercase tracking-widest font-semibold mb-3" style={{ color: 'var(--text-muted)' }}>Select Your Mood</p>
+        <div className="flex gap-3">
+          <MoodButton mood="positive" label="Positive" emoji="😊" selected={form.mood_before === 'positive'} onClick={v => handleChange('mood_before', v)} readOnly={false} />
+          <MoodButton mood="neutral" label="Neutral" emoji="😐" selected={form.mood_before === 'neutral'} onClick={v => handleChange('mood_before', v)} readOnly={false} />
+          <MoodButton mood="negative" label="Negative" emoji="😔" selected={form.mood_before === 'negative'} onClick={v => handleChange('mood_before', v)} readOnly={false} />
+        </div>
       </div>
 
       {/* Feeling After + Mood */}

@@ -105,12 +105,6 @@ export default function DayDetail() {
                 style={{ background: 'rgba(201,168,76,0.2)', color: '#C9A84C' }}>
                 {isBonus ? `Bonus Day ${dayNum - 66}` : `Day ${dayNum}`}
               </span>
-              {dayContent?.category && (
-                <span className="text-xs px-2 py-0.5 rounded-full"
-                  style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)' }}>
-                  {dayContent.category}
-                </span>
-              )}
             </div>
             <h1 className="text-xl font-bold font-playfair" style={{ color: 'var(--text-primary)' }}>
               {dayContent?.habit_title} {dayContent?.habit_emoji}

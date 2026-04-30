@@ -48,6 +48,7 @@ export async function initDb() {
         feeling_before  TEXT NOT NULL DEFAULT '',
         feeling_after   TEXT NOT NULL DEFAULT '',
         mood            TEXT NOT NULL DEFAULT '',
+        mood_before     TEXT NOT NULL DEFAULT '',
         notes           TEXT NOT NULL DEFAULT '',
         trophy_earned   BOOLEAN NOT NULL DEFAULT FALSE,
         log_date        TEXT NOT NULL DEFAULT '',
@@ -115,6 +116,11 @@ export async function initDb() {
     // Store custom field answers as JSON on habit_logs
     await client.query(`
       ALTER TABLE habit_logs ADD COLUMN IF NOT EXISTS custom_data JSONB NOT NULL DEFAULT '{}';
+    `);
+
+    // Track mood for the "before the habit" section as well
+    await client.query(`
+      ALTER TABLE habit_logs ADD COLUMN IF NOT EXISTS mood_before TEXT NOT NULL DEFAULT '';
     `);
 
     await client.query(`

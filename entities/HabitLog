@@ -46,6 +46,15 @@
       ],
       "description": "Mood inferred from feeling after"
     },
+    "mood_before": {
+      "type": "string",
+      "enum": [
+        "positive",
+        "neutral",
+        "negative"
+      ],
+      "description": "Mood inferred from feeling before"
+    },
     "notes": {
       "type": "string",
       "description": "Optional additional notes"

@@ -463,13 +463,6 @@ app.put('/api/apps/:appId/entities/:entity/:id', requireAuth, async (req, res) =
     fields.user_email = req.authUser.email;
   }
 
-  // Habit logs are immutable for participants after the first save (only admins may edit)
-  if (table === 'habit_logs' && req.authUser.role !== 'admin') {
-    return res.status(403).json({
-      error: 'This entry cannot be changed after it is saved. Contact an administrator if you need a correction.',
-    });
-  }
-
   if (!Object.keys(fields).length) return badRequest(res, 'No updatable fields');
 
   const sets = Object.keys(fields).map((k, i) => `${k} = $${i + 1}`);
@@ -504,12 +497,6 @@ app.delete('/api/apps/:appId/entities/:entity/:id', requireAuth, async (req, res
   }
 
   try {
-    if (table === 'habit_logs' && req.authUser.role !== 'admin') {
-      return res.status(403).json({
-        error: 'Entries cannot be removed after they are saved. Contact an administrator if you need a correction.',
-      });
-    }
-
     // For user-scoped tables, only allow deleting own records
     const ownershipClause = USER_SCOPED_TABLES.has(table)
       ? `AND user_email = '${req.authUser.email}'`

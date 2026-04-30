@@ -73,7 +73,7 @@ export default function DayGrid({ logs, totalDays = 66, onDayClick }) {
         {[
           { color: '#4ade80', label: 'Completed' },
           { color: '#E8C96A', label: 'Trophy Earned' },
-          { color: '#f87171', label: 'Logged / Missed' },
+          { color: '#f87171', label: 'Missed / Incomplete' },
           { color: 'rgba(201,168,76,0.15)', label: 'Not started' },
         ].map(item => (
           <div key={item.label} className="flex items-center gap-1.5">
