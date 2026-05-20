@@ -1,5 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
 git pull
 npm install
 npm run build
-pm2 restart dashboard-backend
-pm2 restart dashboard-frontend
+
+# Reload via the ecosystem file so the frontend always runs the production
+# preview server (vite preview), never the dev server.
+pm2 startOrReload ecosystem.config.cjs --update-env
+pm2 save
